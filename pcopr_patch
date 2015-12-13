@@ -1,0 +1,150 @@
+#!/bin/bash
+
+####
+# config
+
+# NOTE: any existing patch files in this directory will be deleted
+DIR_PATCHES="patches"
+
+DIR_REPO="linux-upstream"
+DIR_REPO_FIXES="$DIR_REPO-fixes"
+
+####
+# functions
+
+function msg() {
+	echo -e "$*"
+}
+
+function notice() {
+	msg ">>> $*"
+}
+
+function warn() {
+	notice "WARNING: $*"
+}
+
+function exit_error() {
+	if [[ -z $* ]]; then
+		notice "ERROR: unknown error occurred"
+	else
+		notice "ERROR:" "$*"
+	fi
+	exit 2
+}
+
+function exit_usage() {
+	msg "$0: [-h] [-r <revision>]"
+	exit 1
+}
+
+function verify_deps() {
+	[[ -z "$1" ]] && return
+	if ! which "$1" >& /dev/null; then
+		exit_error "install \"$1\" and include it in your \$PATH"
+	fi
+}
+
+function branch_stable() {
+	local remote="$1"
+
+	git branch -la | grep "remotes/$remote/stable-" \
+		| sort | tail -n1 | sed -e 's/.*remotes\///'
+}
+
+function branch_merge() {
+	local branch="$1"
+
+	notice "MERGE ${branch^^}"
+	if ! git merge --squash "$branch"; then
+		notice "FIXING ${branch^^}"
+		for i in ../$DIR_REPO_FIXES/${branch//\//_}-*.patch; do
+			if [[ -r "$i" ]]; then
+				patch -p0 < "$i" || exit 2
+			fi
+		done
+		git add -A
+	fi
+
+	# only commit if there is something to commit
+	if [[ -n $(git status --short) ]]; then
+		git commit -m "COPR automated squashed merge of $branch" \
+			|| exit 2
+		patch_count=$((patch_count + 1))
+	fi
+}
+
+####
+# main
+
+# store our current working directory
+dir_cwd=$(pwd)
+
+#
+# verify dependencies
+#
+
+[[ ! -d $dir_cwd/$DIR_PATCHES ]] && exit_error "patch directory does not exist"
+verify_deps git
+verify_deps patch
+verify_deps sort
+verify_deps tail
+verify_deps sed
+
+#
+# option parsing
+#
+
+while getopts ":h" opt; do
+	case "$opt" in
+	h|?)
+		exit_usage
+		;;
+	esac
+done
+
+shift $(($OPTIND - 1));
+cmd="$1"
+shift
+
+#
+# generate the patches
+#
+
+# track branches/patches with changes
+patch_count=0
+
+# jump to upstream repo
+cd $DIR_REPO
+
+# reset upstream repo
+notice "RESET"
+rm -f $dir_cwd/$DIR_PATCHES/*.patch
+git clean -f -d
+git checkout --force master || exit 2
+git reset --hard || exit 2
+
+# update upstream repo
+notice "UPDATE"
+git remote update || exit 2
+git pull || exit 2
+
+# create copr branch
+notice "CREATE COPR BRANCH"
+git branch --delete --force copr &> /dev/null # || exit 2
+git checkout -b copr -t fedora/rawhide || exit 2
+
+# merge other trees/branches (in order)
+branch_merge $(branch_stable "selinux")
+branch_merge "selinux/next"
+branch_merge $(branch_stable "audit")
+branch_merge "audit/next"
+
+# generate patches
+notice "GENERATE PATCHES"
+git format-patch -o $dir_cwd/$DIR_PATCHES -$patch_count HEAD || exit 2
+
+# jump back to master
+git checkout --force master
+
+exit 0
