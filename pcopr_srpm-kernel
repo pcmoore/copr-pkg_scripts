@@ -1,6 +1,27 @@
 #!/bin/bash
 
 ####
+#
+# Fedora COPR Kernel SRPM Generation Script
+# Paul Moore <paul@paul-moore.com>
+#
+
+#
+# COMMAND LINE OPTIONS
+#
+# -h            : help/usage information
+# -f            : force the package to be built regardless of version conflict
+# -r <revision> : package revision number (default = 1)
+#
+
+#
+# REPO REQUIREMENTS
+#
+# > git remote -v
+# fedora  git://pkgs.fedoraproject.org/kernel.git
+#
+
+####
 # config
 
 DIR_PATCHES="patches"
@@ -172,3 +193,5 @@ done
 git checkout --force master
 
 exit 0
+
+# kate: syntax bash;

@@ -1,6 +1,28 @@
 #!/bin/bash
 
 ####
+#
+# Fedora COPR Patch Generation Script
+# Paul Moore <paul@paul-moore.com>
+#
+
+#
+# COMMAND LINE OPTIONS
+#
+# -h            : help/usage information
+#
+
+#
+# REPO REQUIREMENTS
+#
+# > git remote -v
+# audit   git://git.infradead.org/users/pcmoore/audit
+# fedora  git://git.kernel.org/pub/scm/linux/kernel/git/jwboyer/fedora.git
+# linus   git://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git
+# selinux git://git.infradead.org/users/pcmoore/selinux
+#
+
+####
 # config
 
 # NOTE: any existing patch files in this directory will be deleted
@@ -148,3 +170,5 @@ git format-patch -o $dir_cwd/$DIR_PATCHES -$patch_count HEAD || exit 2
 git checkout --force master
 
 exit 0
+
+# kate: syntax bash;
