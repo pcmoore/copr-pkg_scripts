@@ -92,15 +92,18 @@ function branch_stable() {
 
 function branch_merge() {
 	local branch="$1"
+	local fix_count=0
 
 	notice "MERGE ${branch^^}"
 	if ! git merge --squash "$branch"; then
 		notice "FIXING ${branch^^}"
 		for i in ../$DIR_REPO_FIXES/${branch//\//_}-*.patch; do
 			if [[ -r "$i" ]]; then
-				patch -p0 < "$i" || exit 2
+				patch -p1 < "$i" || exit 2
+				fix_count=$(($fix_count + 1))
 			fi
 		done
+		[[ $fix_count -eq 0 ]] && exit 2
 		git add -A
 	fi
 
