@@ -40,13 +40,16 @@
 ####
 # config
 
-DIR_PATCHES="patches"
-DIR_SRPMS="srpms"
+DIR_PATCHES=""
+DIR_SRPMS=""
 
-DIR_REPO="linux-fedora"
-DIR_REPO_FIXES="$DIR_REPO-fixes"
+DIR_REPO_RPM=""
+DIR_REPO_RPM_FIXES=""
 
 PKG_VARIANT="secnext"
+
+# load any configuration that may exist
+[[ -r "pcopr.config" ]] && source ./pcopr.config
 
 ####
 # functions
@@ -130,7 +133,7 @@ shift
 #
 
 # jump to fedora repo
-cd $DIR_REPO
+cd $DIR_REPO_RPM
 
 # reset fedora repo
 notice "RESET"
@@ -172,7 +175,7 @@ sed -i -e '/^# END OF PATCH DEFINITIONS/ r copr.inc' kernel.spec  || exit 2
 
 # apply fixes
 notice "FIXING KERNEL PACKAGE"
-for i in ../$DIR_REPO_FIXES/*.patch; do
+for i in ../$DIR_REPO_RPM_FIXES/*.patch; do
 	if [[ -r "$i" ]]; then
 		patch -p0 < "$i" || exit 2
 	fi

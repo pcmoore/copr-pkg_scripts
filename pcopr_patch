@@ -42,10 +42,13 @@
 # config
 
 # NOTE: any existing patch files in this directory will be deleted
-DIR_PATCHES="patches"
+DIR_PATCHES=""
 
-DIR_REPO="linux-upstream"
-DIR_REPO_FIXES="$DIR_REPO-fixes"
+DIR_REPO_SRC=""
+DIR_REPO_SRC_FIXES=""
+
+# load any configuration that may exist
+[[ -r "pcopr.config" ]] && source ./pcopr.config
 
 ####
 # functions
@@ -97,7 +100,7 @@ function branch_merge() {
 	notice "MERGE ${branch^^}"
 	if ! git merge --squash "$branch"; then
 		notice "FIXING ${branch^^}"
-		for i in ../$DIR_REPO_FIXES/${branch//\//_}-*.patch; do
+		for i in ../$DIR_REPO_SRC_FIXES/${branch//\//_}-*.patch; do
 			if [[ -r "$i" ]]; then
 				patch -p1 < "$i" || exit 2
 				fix_count=$(($fix_count + 1))
@@ -156,7 +159,7 @@ shift
 patch_count=0
 
 # jump to upstream repo
-cd $DIR_REPO
+cd $DIR_REPO_SRC
 
 # reset upstream repo
 notice "RESET"
