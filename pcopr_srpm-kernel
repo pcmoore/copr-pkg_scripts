@@ -40,6 +40,9 @@
 ####
 # config
 
+USER_NAME=""
+USER_EMAIL=""
+
 DIR_PATCHES=""
 DIR_SRPMS=""
 
@@ -85,6 +88,12 @@ function verify_deps() {
 	if ! which "$1" >& /dev/null; then
 		exit_error "install \"$1\" and include it in your \$PATH"
 	fi
+}
+
+function specfile_version() {
+	[[ -z "$1" || ! -r "$1" ]] && return
+	sed -e '1,/^%changelog/d' "$1" | sed -n -e '/^*.* - .*/p' | \
+		sed -n -e '1p' | sed -e 's/\(.*\) - \(.*\)/\2/'
 }
 
 ####
@@ -157,21 +166,30 @@ notice "COPY KERNEL PATCHES"
 cp $dir_cwd/$DIR_PATCHES/*.patch . || exit 2
 ls -1 *-COPR-*.patch
 
-# generate specfile snippet
+# generate specfile patch snippet
 notice "GENERATE SPECFILE PATCH REFERENCES"
-cat /dev/null > copr.inc
+cat /dev/null > copr-patches.inc
 for i in *-COPR-*.patch; do
 	echo $(basename $i) | \
-		echo "$(sed -e 's/\([0-9]\+\)\(-.*\)/Patch1\1:'/) $i" >> copr.inc  || exit 2
+		echo "$(sed -e 's/\([0-9]\+\)\(-.*\)/Patch1\1:'/) $i" >> copr-patches.inc  || exit 2
 done
-cat copr.inc
+cat copr-patches.inc
+
+# generate specfile changelog snippet
+cat /dev/null > copr-changelog.inc
+echo "* $(date +"%a %b %d %Y") $USER_NAME <$USER_EMAIL> - $(specfile_version kernel.spec).$PKG_VARIANT.$opt_revision" >> copr-changelog.inc
+echo "- automated build for https://copr.fedoraproject.org" >> copr-changelog.inc
+echo "" >> copr-changelog.inc
 
 # patch kernel specfile
 # NOTE: make a backup in kernel.spec.orig to make life easier
 cp kernel.spec kernel.spec.orig
 notice "PATCH KERNEL SPECFILE"
 sed -i -e 's/^# define buildid .local/%define buildid .'$PKG_VARIANT'.'$opt_revision'/' kernel.spec  || exit 2
-sed -i -e '/^# END OF PATCH DEFINITIONS/ r copr.inc' kernel.spec  || exit 2
+sed -i -e '/^# END OF PATCH DEFINITIONS/ r copr-patches.inc' kernel.spec  || exit 2
+
+# make a note in the changelog
+sed -i -e '/^%changelog/ r copr-changelog.inc' kernel.spec || exit 2
 
 # apply fixes
 notice "FIXING KERNEL PACKAGE"
