@@ -43,6 +43,8 @@
 USER_NAME=""
 USER_EMAIL=""
 
+COPR_USER=""
+COPR_PROJECT=""
 COPR_URL="https://copr.fedorainfracloud.org"
 
 DIR_PATCHES="patches"
@@ -113,16 +115,21 @@ verify_deps git
 verify_deps sed
 verify_deps patch
 verify_deps fedpkg
+verify_deps copr-cli
 
 #
 # option parsing
 #
 
+opt_build=0
 opt_force=0
 opt_revision=1
 
-while getopts ":hfr:" opt; do
+while getopts ":bhfr:" opt; do
 	case "$opt" in
+	b)
+		opt_build=1
+		;;
 	f)
 		opt_force=1
 		;;
@@ -227,6 +234,14 @@ for i in *.src.rpm; do
 	cp $i $dir_cwd/$DIR_SRPMS
 	ls -l $dir_cwd/$DIR_SRPMS/$i
 done
+
+# attempt any copr builds
+if [[ $opt_build -eq 1 ]]; then
+	notice "BUILDING KERNEL SRPM"
+	for i in *.src.rpm; do
+		copr-cli build --nowait pcmoore/kernel-secnext $i
+	done
+fi
 
 # jump back to master
 git checkout --force master
