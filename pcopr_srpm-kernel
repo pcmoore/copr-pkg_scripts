@@ -43,8 +43,10 @@
 USER_NAME=""
 USER_EMAIL=""
 
-DIR_PATCHES=""
-DIR_SRPMS=""
+COPR_URL="https://copr.fedorainfracloud.org"
+
+DIR_PATCHES="patches"
+DIR_SRPMS="srpms"
 
 DIR_REPO_RPM=""
 DIR_REPO_RPM_FIXES=""
@@ -178,7 +180,7 @@ cat copr-patches.inc
 # generate specfile changelog snippet
 cat /dev/null > copr-changelog.inc
 echo "* $(date +"%a %b %d %Y") $USER_NAME <$USER_EMAIL> - $(specfile_version kernel.spec).$PKG_VARIANT.$opt_revision" >> copr-changelog.inc
-echo "- automated build for https://copr.fedoraproject.org" >> copr-changelog.inc
+echo "- automated build for $COPR_URL" >> copr-changelog.inc
 echo "" >> copr-changelog.inc
 
 # patch kernel specfile
