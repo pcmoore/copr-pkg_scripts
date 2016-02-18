@@ -110,12 +110,27 @@ dir_cwd=$(pwd)
 # verify dependencies
 #
 
-[[ ! -d "$dir_cwd/$DIR_SRPMS" ]] && exit_error "srpms directory does not exist"
+# verify tools
 verify_deps git
 verify_deps sed
 verify_deps patch
 verify_deps fedpkg
 verify_deps copr-cli
+
+# verify configuration
+[[ -z $USER_NAME ]] && exit_error "USER_NAME is not set"
+[[ -z $USER_EMAIL ]] && exit_error "USER_EMAIL is not set"
+[[ -z $COPR_USER ]] && exit_error "COPR_USER is not set"
+[[ -z $COPR_PROJECT ]] && exit_error "COPR_PROJECT is not set"
+[[ -z $COPR_URL ]] && exit_error "COPR_URL is not set"
+[[ -z $DIR_PATCHES ]] && exit_error "DIR_PATCHES is not set"
+[[ -z $DIR_SRPMS ]] && exit_error "DIR_SRPMS is not set"
+[[ -z $DIR_REPO_RPM ]] && exit_error "DIR_REPO_RPM is not set"
+[[ -z $DIR_REPO_RPM_FIXES ]] && exit_error "DIR_REPO_RPM_FIXES is not set"
+[[ -z $PKG_VARIANT ]] && exit_error "PKG_VARIANT is not set"
+
+# verify filesystem
+[[ ! -d "$dir_cwd/$DIR_SRPMS" ]] && exit_error "srpms directory does not exist"
 
 #
 # option parsing

@@ -128,12 +128,20 @@ dir_cwd=$(pwd)
 # verify dependencies
 #
 
-[[ ! -d $dir_cwd/$DIR_PATCHES ]] && exit_error "patch directory does not exist"
+# verify tools
 verify_deps git
 verify_deps patch
 verify_deps sort
 verify_deps tail
 verify_deps sed
+
+# verify configuration
+[[ -z $DIR_PATCHES ]] && exit_error "DIR_PATCHES is not set"
+[[ -z $DIR_REPO_SRC ]] && exit_error "DIR_REPO_SRC is not set"
+[[ -z $DIR_REPO_SRC_FIXES ]] && exit_error "DIR_REPO_SRC_FIXES is not set"
+
+# verify filesystem
+[[ ! -d $dir_cwd/$DIR_PATCHES ]] && exit_error "patch directory does not exist"
 
 #
 # option parsing
