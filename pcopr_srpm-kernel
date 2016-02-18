@@ -83,7 +83,7 @@ function exit_error() {
 }
 
 function exit_usage() {
-	msg "$0: [-h] [-f] [-r <revision>]"
+	msg "$0: [-h] [-b] [-f] [-r <revision>]"
 	exit 1
 }
 
