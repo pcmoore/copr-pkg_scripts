@@ -185,19 +185,23 @@ notice "CREATE COPR BRANCH"
 git branch --delete --force copr &> /dev/null # || exit 2
 git checkout -b copr -t fedora/master || exit 2
 
-# copy patches
+# copy patches (if patches are present)
 notice "COPY KERNEL PATCHES"
-cp $dir_cwd/$DIR_PATCHES/*.patch . || exit 2
-ls -1 *-COPR-*.patch
+if [[ -n $(ls $dir_cwd/$DIR_PATCHES/*.patch 2> /dev/null) ]]; then
+	cp $dir_cwd/$DIR_PATCHES/*.patch . || exit 2
+	ls -1 *-COPR-*.patch
+fi
 
-# generate specfile patch snippet
+# generate specfile patch snippet (if patches are present)
 notice "GENERATE SPECFILE PATCH REFERENCES"
-cat /dev/null > copr-patches.inc
-for i in *-COPR-*.patch; do
-	echo $(basename $i) | \
-		echo "$(sed -e 's/\([0-9]\+\)\(-.*\)/Patch1\1:'/) $i" >> copr-patches.inc  || exit 2
-done
-cat copr-patches.inc
+if [[ -n $(ls $dir_cwd/$DIR_PATCHES/*.patch 2> /dev/null) ]]; then
+	cat /dev/null > copr-patches.inc
+	for i in *-COPR-*.patch; do
+		echo $(basename $i) | \
+			echo "$(sed -e 's/\([0-9]\+\)\(-.*\)/Patch1\1:'/) $i" >> copr-patches.inc  || exit 2
+	done
+	cat copr-patches.inc
+fi
 
 # generate specfile changelog snippet
 cat /dev/null > copr-changelog.inc
