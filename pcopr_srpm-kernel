@@ -175,6 +175,13 @@ git clean -f -d
 git checkout --force master || exit 2
 git reset --hard || exit 2
 
+# reset any ignored directories as they are likely build directories
+notice "RESET IGNORED DIRECTORIES"
+ls -ld $(git status --ignored --porcelain | sed -n -e '/^\!\!.*\/$/p' |
+	 sed -e 's/\!\![ \t]*\(.*\)\/$/\1/')
+rm -rf $(git status --ignored --porcelain | sed -n -e '/^\!\!.*\/$/p' |
+	 sed -e 's/\!\![ \t]*\(.*\)\/$/\1/')
+
 # update fedora repo
 notice "UPDATE"
 git remote update || exit 2
