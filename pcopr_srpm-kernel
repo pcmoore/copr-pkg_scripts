@@ -83,7 +83,7 @@ function exit_error() {
 }
 
 function exit_usage() {
-	msg "$0: [-h] [-b] [-f] [-r <revision>]"
+	msg "$0: [-h] [-f] [-b] [-t] [-V] [-r <revision>]"
 	exit 1
 }
 
@@ -139,8 +139,10 @@ verify_deps copr-cli
 opt_build=0
 opt_force=0
 opt_revision=1
+opt_test=0
+opt_version=0
 
-while getopts ":bhfr:" opt; do
+while getopts ":bhfr:tV" opt; do
 	case "$opt" in
 	b)
 		opt_build=1
@@ -150,6 +152,12 @@ while getopts ":bhfr:" opt; do
 		;;
 	r)
 		opt_revision="$OPTARG"
+		;;
+	t)
+		opt_test=1
+		;;
+	V)
+		opt_version=1
 		;;
 	h|?)
 		exit_usage
@@ -191,6 +199,12 @@ git pull || exit 2
 notice "CREATE COPR BRANCH"
 git branch --delete --force copr &> /dev/null # || exit 2
 git checkout -b copr -t fedora/master || exit 2
+
+# if we are just dumping the version information then do it and exit
+if [[ $opt_version -eq 1 ]]; then
+	echo "packge version: $(specfile_version kernel.spec).$PKG_VARIANT.$opt_revision"
+	exit 0
+fi
 
 # copy patches (if patches are present)
 notice "COPY KERNEL PATCHES"
@@ -242,6 +256,9 @@ git diff kernel.spec
 # test rpm prep stage
 notice "TEST KERNEL RPM PREP STAGE"
 fedpkg prep  || exit 2
+
+# if we are just doing a test run then exit here
+[[ $opt_test -eq 1 ]] && exit 0
 
 # build srpm
 notice "BUILD KERNEL SRPM"
