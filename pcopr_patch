@@ -16,10 +16,8 @@
 # REPO REQUIREMENTS
 #
 # > git remote -v
-# audit   git://git.infradead.org/users/pcmoore/audit
 # fedora  git://git.kernel.org/pub/scm/linux/kernel/git/jwboyer/fedora.git
 # linus   git://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git
-# selinux git://git.infradead.org/users/pcmoore/selinux
 #
 
 #
@@ -90,7 +88,7 @@ function branch_stable() {
 	local remote="$1"
 
 	git branch -la | grep "remotes/$remote/stable-" \
-		| sort | tail -n1 | sed -e 's/.*remotes\///'
+		| sort -V | tail -n1 | sed -e 's/.*remotes\///'
 }
 
 function branch_merge() {
@@ -139,6 +137,7 @@ verify_deps sed
 [[ -z $DIR_PATCHES ]] && exit_error "DIR_PATCHES is not set"
 [[ -z $DIR_REPO_SRC ]] && exit_error "DIR_REPO_SRC is not set"
 [[ -z $DIR_REPO_SRC_FIXES ]] && exit_error "DIR_REPO_SRC_FIXES is not set"
+[[ -z $PATCH_BRANCH_LIST ]] && exit_error "PATCH_BRANCH_LIST is not set"
 
 # verify filesystem
 [[ ! -d $dir_cwd/$DIR_PATCHES ]] && exit_error "patch directory does not exist"
@@ -187,10 +186,16 @@ git branch --delete --force copr &> /dev/null # || exit_error
 git checkout -b copr -t fedora/rawhide || exit_error
 
 # merge other trees/branches (in order)
-branch_merge $(branch_stable "selinux")
-branch_merge "selinux/next"
-branch_merge $(branch_stable "audit")
-branch_merge "audit/next"
+for i in $PATCH_BRANCH_LIST; do
+	case "$i" in
+	stable:*)
+		branch_merge $(branch_stable $(echo ${i#stable:}))
+		;;
+	*)
+		branch_merge "$i"
+		;;
+	esac
+done
 
 # generate patches
 notice "GENERATE PATCHES"
