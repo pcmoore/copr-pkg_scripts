@@ -102,18 +102,18 @@ function branch_merge() {
 		notice "FIXING ${branch^^}"
 		for i in ../$DIR_REPO_SRC_FIXES/${branch//\//_}-*.patch; do
 			if [[ -r "$i" ]]; then
-				patch -p1 < "$i" || exit 2
+				patch -p1 < "$i" || exit_error
 				fix_count=$(($fix_count + 1))
 			fi
 		done
-		[[ $fix_count -eq 0 ]] && exit 2
+		[[ $fix_count -eq 0 ]] && exit_error
 		git add -A
 	fi
 
 	# only commit if there is something to commit
 	if [[ -n $(git status --short) ]]; then
 		git commit -m "COPR automated squashed merge of $branch" \
-			|| exit 2
+			|| exit_error
 		patch_count=$((patch_count + 1))
 	fi
 }
@@ -173,18 +173,18 @@ cd $DIR_REPO_SRC
 notice "RESET"
 rm -f $dir_cwd/$DIR_PATCHES/*.patch
 git clean -f -d
-git checkout --force master || exit 2
-git reset --hard || exit 2
+git checkout --force master || exit_error
+git reset --hard || exit_error
 
 # update upstream repo
 notice "UPDATE"
-git remote update || exit 2
-git pull || exit 2
+git remote update || exit_error
+git pull || exit_error
 
 # create copr branch
 notice "CREATE COPR BRANCH"
-git branch --delete --force copr &> /dev/null # || exit 2
-git checkout -b copr -t fedora/rawhide || exit 2
+git branch --delete --force copr &> /dev/null # || exit_error
+git checkout -b copr -t fedora/rawhide || exit_error
 
 # merge other trees/branches (in order)
 branch_merge $(branch_stable "selinux")
@@ -194,7 +194,7 @@ branch_merge "audit/next"
 
 # generate patches
 notice "GENERATE PATCHES"
-git format-patch -o $dir_cwd/$DIR_PATCHES -$patch_count HEAD || exit 2
+git format-patch -o $dir_cwd/$DIR_PATCHES -$patch_count HEAD || exit_error
 
 # jump back to master
 git checkout --force master

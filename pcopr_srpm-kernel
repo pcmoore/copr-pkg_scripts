@@ -180,8 +180,8 @@ cd $DIR_REPO_RPM
 notice "RESET"
 rm -f *.rpm
 git clean -f -d
-git checkout --force master || exit 2
-git reset --hard || exit 2
+git checkout --force master || exit_error
+git reset --hard || exit_error
 
 # reset any ignored directories as they are likely build directories
 notice "RESET IGNORED DIRECTORIES"
@@ -192,13 +192,13 @@ rm -rf $(git status --ignored --porcelain | sed -n -e '/^\!\!.*\/$/p' |
 
 # update fedora repo
 notice "UPDATE"
-git remote update || exit 2
-git pull || exit 2
+git remote update || exit_error
+git pull || exit_error
 
 # create copr branch
 notice "CREATE COPR BRANCH"
-git branch --delete --force copr &> /dev/null # || exit 2
-git checkout -b copr -t fedora/master || exit 2
+git branch --delete --force copr &> /dev/null # || exit_error
+git checkout -b copr -t fedora/master || exit_error
 
 # if we are just dumping the version information then do it and exit
 if [[ $opt_version -eq 1 ]]; then
@@ -209,7 +209,7 @@ fi
 # copy patches (if patches are present)
 notice "COPY KERNEL PATCHES"
 if [[ -n $(ls $dir_cwd/$DIR_PATCHES/*.patch 2> /dev/null) ]]; then
-	cp $dir_cwd/$DIR_PATCHES/*.patch . || exit 2
+	cp $dir_cwd/$DIR_PATCHES/*.patch . || exit_error
 	ls -1 *-COPR-*.patch
 fi
 
@@ -219,7 +219,7 @@ if [[ -n $(ls $dir_cwd/$DIR_PATCHES/*.patch 2> /dev/null) ]]; then
 	cat /dev/null > copr-patches.inc
 	for i in *-COPR-*.patch; do
 		echo $(basename $i) | \
-			echo "$(sed -e 's/\([0-9]\+\)\(-.*\)/Patch1\1:'/) $i" >> copr-patches.inc  || exit 2
+			echo "$(sed -e 's/\([0-9]\+\)\(-.*\)/Patch1\1:'/) $i" >> copr-patches.inc  || exit_error
 	done
 	cat copr-patches.inc
 fi
@@ -234,17 +234,17 @@ echo "" >> copr-changelog.inc
 # NOTE: make a backup in kernel.spec.orig to make life easier
 cp kernel.spec kernel.spec.orig
 notice "PATCH KERNEL SPECFILE"
-sed -i -e 's/^# define buildid .local/%define buildid .'$PKG_VARIANT'.'$opt_revision'/' kernel.spec  || exit 2
-sed -i -e '/^# END OF PATCH DEFINITIONS/ r copr-patches.inc' kernel.spec  || exit 2
+sed -i -e 's/^# define buildid .local/%define buildid .'$PKG_VARIANT'.'$opt_revision'/' kernel.spec  || exit_error
+sed -i -e '/^# END OF PATCH DEFINITIONS/ r copr-patches.inc' kernel.spec || exit_error
 
 # make a note in the changelog
-sed -i -e '/^%changelog/ r copr-changelog.inc' kernel.spec || exit 2
+sed -i -e '/^%changelog/ r copr-changelog.inc' kernel.spec || exit_error
 
 # apply fixes
 notice "FIXING KERNEL PACKAGE"
 for i in ../$DIR_REPO_RPM_FIXES/*.patch; do
 	if [[ -r "$i" ]]; then
-		patch -p0 < "$i" || exit 2
+		patch -p0 < "$i" || exit_error
 	fi
 done
 # NOTE: make a backup in kernel.spec.copr to make life easier
@@ -255,14 +255,14 @@ git diff kernel.spec
 
 # test rpm prep stage
 notice "TEST KERNEL RPM PREP STAGE"
-fedpkg prep  || exit 2
+fedpkg prep  || exit_error
 
 # if we are just doing a test run then exit here
 [[ $opt_test -eq 1 ]] && exit 0
 
 # build srpm
 notice "BUILD KERNEL SRPM"
-fedpkg srpm  || exit 2
+fedpkg srpm  || exit_error
 
 # store any srpms built
 notice "TRANSFERING KERNEL SRPM"
