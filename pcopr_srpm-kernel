@@ -83,7 +83,7 @@ function exit_error() {
 }
 
 function exit_usage() {
-	msg "$0: [-h] [-f] [-b] [-t] [-V] [-r <revision>]"
+	msg "$0: [-h] [-f] [-b] [-B] [-t] [-V] [-r <revision>]"
 	exit 1
 }
 
@@ -137,15 +137,19 @@ verify_deps copr-cli
 #
 
 opt_build=0
+opt_scratchbuild=0
 opt_force=0
 opt_revision=1
 opt_test=0
 opt_version=0
 
-while getopts ":bhfr:tV" opt; do
+while getopts ":bBhfr:tV" opt; do
 	case "$opt" in
 	b)
 		opt_build=1
+		;;
+	B)
+		opt_scratchbuild=1
 		;;
 	f)
 		opt_force=1
@@ -279,6 +283,12 @@ for i in *.src.rpm; do
 done
 
 # attempt any copr builds
+if [[ $opt_scratchbuild -eq 1 ]]; then
+	notice "SCRATCH BUILDING KERNEL SRPM"
+	for i in *.src.rpm; do
+		fedpkg scratch-build --srpm=$i
+	done
+fi
 if [[ $opt_build -eq 1 ]]; then
 	notice "BUILDING KERNEL SRPM"
 	for i in *.src.rpm; do
