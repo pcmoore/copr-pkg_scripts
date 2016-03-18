@@ -53,7 +53,7 @@ DIR_SRPMS="srpms"
 DIR_REPO_RPM=""
 DIR_REPO_RPM_FIXES=""
 
-PKG_VARIANT="secnext"
+PKG_VARIANT=""
 
 # load any configuration that may exist
 [[ -r "pcopr.config" ]] && source ./pcopr.config
@@ -282,7 +282,7 @@ done
 if [[ $opt_build -eq 1 ]]; then
 	notice "BUILDING KERNEL SRPM"
 	for i in *.src.rpm; do
-		copr-cli build --nowait pcmoore/kernel-secnext $i
+		copr-cli build --nowait $COPR_USER/$COPR_PROJECT $i
 	done
 fi
 
