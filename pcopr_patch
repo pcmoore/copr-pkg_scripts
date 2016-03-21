@@ -84,6 +84,12 @@ function verify_deps() {
 	fi
 }
 
+function patch_cmd() {
+	[[ -z "$1" ]] && return
+	patch -N -p0 -f < "$1" || patch -N -p1 -f < "$1"
+	return $?
+}
+
 function branch_stable() {
 	local remote="$1"
 
@@ -100,7 +106,7 @@ function branch_merge() {
 		notice "FIXING ${branch^^}"
 		for i in ../$DIR_REPO_SRC_FIXES/${branch//\//_}-*.patch; do
 			if [[ -r "$i" ]]; then
-				patch -p1 < "$i" || exit_error
+				patch_cmd "$i" || exit_error
 				fix_count=$(($fix_count + 1))
 			fi
 		done

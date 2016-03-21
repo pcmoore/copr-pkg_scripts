@@ -100,6 +100,12 @@ function specfile_version() {
 		sed -n -e '1p' | sed -e 's/\(.*\) - \(.*\)/\2/'
 }
 
+function patch_cmd() {
+	[[ -z "$1" ]] && return
+	patch -N -p0 -f < "$1" || patch -N -p1 -f < "$1"
+	return $?
+}
+
 ####
 # main
 
@@ -248,7 +254,7 @@ sed -i -e '/^%changelog/ r copr-changelog.inc' kernel.spec || exit_error
 notice "FIXING KERNEL PACKAGE"
 for i in ../$DIR_REPO_RPM_FIXES/*.patch; do
 	if [[ -r "$i" ]]; then
-		patch -p0 < "$i" || exit_error
+		patch_cmd "$i" || exit_error
 	fi
 done
 # NOTE: make a backup in kernel.spec.copr to make life easier
