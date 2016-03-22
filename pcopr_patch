@@ -143,6 +143,7 @@ verify_deps sed
 [[ -z $DIR_PATCHES ]] && exit_error "DIR_PATCHES is not set"
 [[ -z $DIR_REPO_SRC ]] && exit_error "DIR_REPO_SRC is not set"
 [[ -z $DIR_REPO_SRC_FIXES ]] && exit_error "DIR_REPO_SRC_FIXES is not set"
+[[ -z $PATCH_BRANCH_BASE ]] && exit_error "PATCH_BRANCH_BASE is not set"
 [[ -z $PATCH_BRANCH_LIST ]] && exit_error "PATCH_BRANCH_LIST is not set"
 
 # verify filesystem
@@ -189,7 +190,7 @@ git pull || exit_error
 # create copr branch
 notice "CREATE COPR BRANCH"
 git branch --delete --force copr &> /dev/null # || exit_error
-git checkout -b copr -t fedora/rawhide || exit_error
+git checkout -b copr -t $PATCH_BRANCH_BASE || exit_error
 
 # merge other trees/branches (in order)
 for i in $PATCH_BRANCH_LIST; do
