@@ -7,20 +7,6 @@
 #
 
 #
-# COMMAND LINE OPTIONS
-#
-# -h            : help/usage information
-#
-
-#
-# REPO REQUIREMENTS
-#
-# > git remote -v
-# fedora  git://git.kernel.org/pub/scm/linux/kernel/git/jwboyer/fedora.git
-# linus   git://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git
-#
-
-#
 # (c) Copyright Red Hat, 2015
 #
 # This program is free software: you can redistribute it and/or modify
@@ -44,9 +30,6 @@ DIR_PATCHES="patches"
 
 DIR_REPO_SRC=""
 DIR_REPO_SRC_FIXES=""
-
-# load any configuration that may exist
-[[ -r "pcopr.config" ]] && source ./pcopr.config
 
 ####
 # functions
@@ -73,7 +56,7 @@ function exit_error() {
 }
 
 function exit_usage() {
-	msg "$0: [-h]"
+	msg "$0: [-h] [-c <config_file>]"
 	exit 1
 }
 
@@ -116,7 +99,7 @@ function branch_merge() {
 
 	# only commit if there is something to commit
 	if [[ -n $(git status --short) ]]; then
-		git commit -m "COPR automated squashed merge of $branch" \
+		git commit -m "COPR automated merge of $branch" \
 			|| exit_error
 		patch_count=$((patch_count + 1))
 	fi
@@ -139,22 +122,17 @@ verify_deps sort
 verify_deps tail
 verify_deps sed
 
-# verify configuration
-[[ -z $DIR_PATCHES ]] && exit_error "DIR_PATCHES is not set"
-[[ -z $DIR_REPO_SRC ]] && exit_error "DIR_REPO_SRC is not set"
-[[ -z $DIR_REPO_SRC_FIXES ]] && exit_error "DIR_REPO_SRC_FIXES is not set"
-[[ -z $PATCH_BRANCH_BASE ]] && exit_error "PATCH_BRANCH_BASE is not set"
-[[ -z $PATCH_BRANCH_LIST ]] && exit_error "PATCH_BRANCH_LIST is not set"
-
-# verify filesystem
-[[ ! -d $dir_cwd/$DIR_PATCHES ]] && exit_error "patch directory does not exist"
-
 #
 # option parsing
 #
 
-while getopts ":h" opt; do
+opt_config=""
+
+while getopts ":c:h" opt; do
 	case "$opt" in
+	c)
+		opt_config="$OPTARG"
+		;;
 	h|?)
 		exit_usage
 		;;
@@ -164,6 +142,30 @@ done
 shift $(($OPTIND - 1));
 cmd="$1"
 shift
+
+#
+# load and verify the configuration
+#
+
+# load the config
+if [[ -n "$opt_config" ]]; then
+	[[ ! -r "$opt_config" ]] && exit_error "unable to open config file"
+	source "$opt_config"
+elif [[ -r "pcopr.config" ]]; then
+	source ./pcopr.config
+else
+	exit_error "unable to find any configuration files"
+fi
+
+# verify configuration
+[[ -z $DIR_PATCHES ]] && exit_error "DIR_PATCHES is not set"
+[[ -z $DIR_REPO_SRC ]] && exit_error "DIR_REPO_SRC is not set"
+[[ -z $DIR_REPO_SRC_FIXES ]] && exit_error "DIR_REPO_SRC_FIXES is not set"
+[[ -z $PATCH_BRANCH_BASE ]] && exit_error "PATCH_BRANCH_BASE is not set"
+[[ -z $PATCH_BRANCH_LIST ]] && exit_error "PATCH_BRANCH_LIST is not set"
+
+# verify filesystem
+[[ ! -d $dir_cwd/$DIR_PATCHES ]] && exit_error "patch directory does not exist"
 
 #
 # generate the patches

@@ -7,21 +7,6 @@
 #
 
 #
-# COMMAND LINE OPTIONS
-#
-# -h            : help/usage information
-# -f            : force the package to be built regardless of version conflict
-# -r <revision> : package revision number (default = 1)
-#
-
-#
-# REPO REQUIREMENTS
-#
-# > git remote -v
-# fedora  git://pkgs.fedoraproject.org/kernel.git
-#
-
-#
 # (c) Copyright Red Hat, 2015
 #
 # This program is free software: you can redistribute it and/or modify
@@ -55,9 +40,6 @@ DIR_REPO_RPM_FIXES=""
 
 PKG_VARIANT=""
 
-# load any configuration that may exist
-[[ -r "pcopr.config" ]] && source ./pcopr.config
-
 ####
 # functions
 
@@ -83,7 +65,7 @@ function exit_error() {
 }
 
 function exit_usage() {
-	msg "$0: [-h] [-f] [-b] [-B] [-t] [-V] [-r <revision>]"
+	msg "$0: [-h] [-c <config_file>] [-f] [-b] [-B] [-t] [-V] [-r <revision>]"
 	exit 1
 }
 
@@ -123,21 +105,6 @@ verify_deps patch
 verify_deps fedpkg
 verify_deps copr-cli
 
-# verify configuration
-[[ -z $USER_NAME ]] && exit_error "USER_NAME is not set"
-[[ -z $USER_EMAIL ]] && exit_error "USER_EMAIL is not set"
-[[ -z $COPR_USER ]] && exit_error "COPR_USER is not set"
-[[ -z $COPR_PROJECT ]] && exit_error "COPR_PROJECT is not set"
-[[ -z $COPR_URL ]] && exit_error "COPR_URL is not set"
-[[ -z $DIR_PATCHES ]] && exit_error "DIR_PATCHES is not set"
-[[ -z $DIR_SRPMS ]] && exit_error "DIR_SRPMS is not set"
-[[ -z $DIR_REPO_RPM ]] && exit_error "DIR_REPO_RPM is not set"
-[[ -z $DIR_REPO_RPM_FIXES ]] && exit_error "DIR_REPO_RPM_FIXES is not set"
-[[ -z $PKG_VARIANT ]] && exit_error "PKG_VARIANT is not set"
-
-# verify filesystem
-[[ ! -d "$dir_cwd/$DIR_SRPMS" ]] && exit_error "srpms directory does not exist"
-
 #
 # option parsing
 #
@@ -148,14 +115,18 @@ opt_force=0
 opt_revision=1
 opt_test=0
 opt_version=0
+opt_config=""
 
-while getopts ":bBhfr:tV" opt; do
+while getopts ":c:bBhfr:tV" opt; do
 	case "$opt" in
 	b)
 		opt_build=1
 		;;
 	B)
 		opt_scratchbuild=1
+		;;
+	c)
+		opt_config="$OPTARG"
 		;;
 	f)
 		opt_force=1
@@ -178,6 +149,35 @@ done
 shift $(($OPTIND - 1));
 cmd="$1"
 shift
+
+#
+# load and verify the configuration
+#
+
+# load the config
+if [[ -n "$opt_config" ]]; then
+	[[ ! -r "$opt_config" ]] && exit_error "unable to open config file"
+	source "$opt_config"
+elif [[ -r "pcopr.config" ]]; then
+	source ./pcopr.config
+else
+	exit_error "unable to find any configuration files"
+fi
+
+# verify configuration
+[[ -z $USER_NAME ]] && exit_error "USER_NAME is not set"
+[[ -z $USER_EMAIL ]] && exit_error "USER_EMAIL is not set"
+[[ -z $COPR_USER ]] && exit_error "COPR_USER is not set"
+[[ -z $COPR_PROJECT ]] && exit_error "COPR_PROJECT is not set"
+[[ -z $COPR_URL ]] && exit_error "COPR_URL is not set"
+[[ -z $DIR_PATCHES ]] && exit_error "DIR_PATCHES is not set"
+[[ -z $DIR_SRPMS ]] && exit_error "DIR_SRPMS is not set"
+[[ -z $DIR_REPO_RPM ]] && exit_error "DIR_REPO_RPM is not set"
+[[ -z $DIR_REPO_RPM_FIXES ]] && exit_error "DIR_REPO_RPM_FIXES is not set"
+[[ -z $PKG_VARIANT ]] && exit_error "PKG_VARIANT is not set"
+
+# verify filesystem
+[[ ! -d "$dir_cwd/$DIR_SRPMS" ]] && exit_error "srpms directory does not exist"
 
 #
 # generate the srpm
