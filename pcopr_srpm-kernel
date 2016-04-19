@@ -109,6 +109,11 @@ verify_deps copr-cli
 # option parsing
 #
 
+# $opt_fast values
+val_fast_all=0
+val_fast_clean=1
+val_fast_prep=2
+
 opt_build=0
 opt_scratchbuild=0
 opt_force=0
@@ -116,8 +121,9 @@ opt_revision=1
 opt_test=0
 opt_version=0
 opt_config=""
+opt_fast=$val_fast_all
 
-while getopts ":c:bBhfr:tV" opt; do
+while getopts ":c:bBhfF:r:tV" opt; do
 	case "$opt" in
 	b)
 		opt_build=1
@@ -130,6 +136,9 @@ while getopts ":c:bBhfr:tV" opt; do
 		;;
 	f)
 		opt_force=1
+		;;
+	F)
+		opt_fast=$((opt_fast + 1))
 		;;
 	r)
 		opt_revision="$OPTARG"
@@ -193,12 +202,14 @@ git clean -f -d
 git checkout --force master || exit_error
 git reset --hard || exit_error
 
-# reset any ignored directories as they are likely build directories
-notice "RESET IGNORED DIRECTORIES"
-ls -ld $(git status --ignored --porcelain | sed -n -e '/^\!\!.*\/$/p' |
-	 sed -e 's/\!\![ \t]*\(.*\)\/$/\1/')
-rm -rf $(git status --ignored --porcelain | sed -n -e '/^\!\!.*\/$/p' |
-	 sed -e 's/\!\![ \t]*\(.*\)\/$/\1/')
+if [[ $opt_fast -lt $val_fast_clean  ]]; then
+	# reset any ignored directories as they are likely build directories
+	notice "RESET IGNORED DIRECTORIES"
+	ls -ld $(git status --ignored --porcelain | sed -n -e '/^\!\!.*\/$/p' |
+		sed -e 's/\!\![ \t]*\(.*\)\/$/\1/')
+	rm -rf $(git status --ignored --porcelain | sed -n -e '/^\!\!.*\/$/p' |
+		sed -e 's/\!\![ \t]*\(.*\)\/$/\1/')
+fi
 
 # update fedora repo
 notice "UPDATE"
@@ -266,8 +277,10 @@ cp kernel.spec kernel.spec.copr
 git diff kernel.spec
 
 # test rpm prep stage
-notice "TEST KERNEL RPM PREP STAGE"
-fedpkg prep  || exit_error
+if [[ $opt_fast -lt $val_fast_prep ]]; then
+	notice "TEST KERNEL RPM PREP STAGE"
+	fedpkg prep  || exit_error
+fi
 
 # if we are just doing a test run then exit here
 [[ $opt_test -eq 1 ]] && exit 0
