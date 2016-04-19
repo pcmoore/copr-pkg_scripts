@@ -123,7 +123,7 @@ opt_version=0
 opt_config=""
 opt_fast=$val_fast_all
 
-while getopts ":c:bBhfF:r:tV" opt; do
+while getopts ":c:bBhfFr:tV" opt; do
 	case "$opt" in
 	b)
 		opt_build=1
