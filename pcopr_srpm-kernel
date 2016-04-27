@@ -223,7 +223,7 @@ git checkout -b copr -t fedora/master || exit_error
 
 # if we are just dumping the version information then do it and exit
 if [[ $opt_version -eq 1 ]]; then
-	echo "packge version: $(specfile_version kernel.spec).$PKG_VARIANT.$opt_revision"
+	echo "packge version: $(specfile_version kernel.spec).$opt_revision.$PKG_VARIANT"
 	exit 0
 fi
 
@@ -249,7 +249,7 @@ fi
 
 # generate specfile changelog snippet
 cat /dev/null > copr-changelog.inc
-echo "* $(date +"%a %b %d %Y") $USER_NAME <$USER_EMAIL> - $(specfile_version kernel.spec).$PKG_VARIANT.$opt_revision" >> copr-changelog.inc
+echo "* $(date +"%a %b %d %Y") $USER_NAME <$USER_EMAIL> - $(specfile_version kernel.spec).$opt_revision.$PKG_VARIANT" >> copr-changelog.inc
 echo "- automated build for $COPR_URL" >> copr-changelog.inc
 echo "" >> copr-changelog.inc
 
@@ -257,7 +257,7 @@ echo "" >> copr-changelog.inc
 # NOTE: make a backup in kernel.spec.orig to make life easier
 cp kernel.spec kernel.spec.orig
 notice "PATCH KERNEL SPECFILE"
-sed -i -e 's/^# define buildid .local/%define buildid .'$PKG_VARIANT'.'$opt_revision'/' kernel.spec  || exit_error
+sed -i -e 's/^# define buildid .local/%define buildid .'$opt_revision'.'$PKG_VARIANT'/' kernel.spec  || exit_error
 sed -n -i -e '/^# END OF PATCH DEFINITIONS/r copr-patches.inc' -e 1x -e '2,${x;p}' -e '${x;p}' kernel.spec || exit_error
 
 # make a note in the changelog
