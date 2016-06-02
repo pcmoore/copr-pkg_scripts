@@ -87,6 +87,7 @@ function branch_merge() {
 	notice "MERGE ${branch^^}"
 	if ! git merge --squash "$branch"; then
 		notice "FIXING ${branch^^}"
+		# NOTE: patches in the form <remote>_<branch>-<num>
 		for i in ../$DIR_REPO_SRC_FIXES/${branch//\//_}-*.patch; do
 			if [[ -r "$i" ]]; then
 				patch_cmd "$i" || exit_error
