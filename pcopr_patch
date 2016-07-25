@@ -34,29 +34,66 @@ DIR_REPO_SRC_FIXES=""
 ####
 # functions
 
+function a_bold() {
+	# only display ascii control sequence if stdout is a terminal
+	if [[ -t 1 ]]; then
+		echo -e "\033[1m"$*"\033[0m"
+	else
+		echo "$*"
+	fi
+}
+
+function a_red() {
+	# only display ascii control sequence if stdout is a terminal
+	if [[ -t 1 ]]; then
+		echo -e "\E[31m"$*"\033[0m"
+	else
+		echo "$*"
+	fi
+}
+
+function a_yellow() {
+	# only display ascii control sequence if stdout is a terminal
+	if [[ -t 1 ]]; then
+		echo -e "\E[33m"$*"\033[0m"
+	else
+		echo "$*"
+	fi
+}
+
+function a_green() {
+	# only display ascii control sequence if stdout is a terminal
+	if [[ -t1 ]]; then
+		echo -e "\E[32m"$*"\033[0m"
+	else
+		echo "$*"
+	fi
+}
+
 function msg() {
 	echo -e "$*"
 }
 
 function notice() {
-	msg ">>> $*"
+	a_bold ">>> $*"
 }
 
 function warn() {
-	msg "*** WARNING: $*"
+	a_red "*** WARNING: $*"
 }
 
 function exit_error() {
 	if [[ -z $* ]]; then
-		msg "*** ERROR: unknown error occurred"
+		a_red "*** ERROR: unknown error occurred"
 	else
-		msg "*** ERROR:" "$*"
+		a_red "*** ERROR:" "$*"
 	fi
 	exit 2
 }
 
 function exit_usage() {
 	msg "$0: [-h] [-c <config_file>]"
+	msg " -c   Use the config file provided instead of pcopr.config"
 	exit 1
 }
 
