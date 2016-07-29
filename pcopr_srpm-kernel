@@ -108,6 +108,7 @@ function exit_usage() {
 	msg " -c   Use the config file provided instead of pcopr.config"
 	msg " -f   Force the operation"
 	msg " -F   Skip steps to do things quicker, can be combined"
+	msg " -O   Run in offline mode"
 	msg " -r   Specify the package revision"
 	msg " -t   Test the operation"
 	msg " -V   Display the package version"
@@ -121,6 +122,21 @@ function verify_deps() {
 	fi
 }
 
+function net() {
+	local rc=0
+
+	if [[ $opt_offline -eq 1 ]]; then
+		# offline
+		echo "OFFLINE: $*"
+	else
+		# online
+		$*
+		rc=$?
+	fi
+
+	return $rc
+}
+
 function specfile_version() {
 	[[ -z "$1" || ! -r "$1" ]] && return
 	sed -e '1,/^%changelog/d' "$1" | sed -n -e '/^*.* - .*/p' | \
@@ -131,6 +147,11 @@ function patch_cmd() {
 	[[ -z "$1" ]] && return
 	patch -N -p0 -f < "$1" || patch -N -p1 -f < "$1"
 	return $?
+}
+
+function branch_tracking() {
+	git branch -vv | grep '^*' | \
+		sed -e 's/.*\[\(.*\).*\].*/\1/' | sed -e 's/\(.*\):.*/\1/'
 }
 
 ####
@@ -167,8 +188,9 @@ opt_test=0
 opt_version=0
 opt_config=""
 opt_fast=$val_fast_all
+opt_offline=0
 
-while getopts ":c:bBhfFr:tV" opt; do
+while getopts ":c:bBhfFOr:tV" opt; do
 	case "$opt" in
 	b)
 		opt_build=1
@@ -184,6 +206,9 @@ while getopts ":c:bBhfFr:tV" opt; do
 		;;
 	F)
 		opt_fast=$((opt_fast + 1))
+		;;
+	O)
+		opt_offline=1
 		;;
 	r)
 		opt_revision="$OPTARG"
@@ -258,8 +283,8 @@ fi
 
 # update fedora repo
 notice "UPDATE"
-git remote update || exit_error
-git pull || exit_error
+net git remote update || exit_error
+git reset --hard $(branch_tracking) || exit_error
 
 # create copr branch
 notice "CREATE COPR BRANCH"
@@ -352,13 +377,13 @@ done
 if [[ $opt_scratchbuild -eq 1 ]]; then
 	notice "SCRATCH BUILDING KERNEL SRPM"
 	for i in *.src.rpm; do
-		fedpkg scratch-build --srpm=$i
+		net fedpkg scratch-build --srpm=$i
 	done
 fi
 if [[ $opt_build -eq 1 ]]; then
 	notice "BUILDING KERNEL SRPM"
 	for i in *.src.rpm; do
-		copr-cli build --nowait $COPR_USER/$COPR_PROJECT $i
+		net copr-cli build --nowait $COPR_USER/$COPR_PROJECT $i
 	done
 fi
 

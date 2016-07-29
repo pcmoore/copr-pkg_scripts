@@ -94,6 +94,7 @@ function exit_error() {
 function exit_usage() {
 	msg "$0: [-h] [-c <config_file>]"
 	msg " -c   Use the config file provided instead of pcopr.config"
+	msg " -O   Run in offline mode"
 	exit 1
 }
 
@@ -104,10 +105,30 @@ function verify_deps() {
 	fi
 }
 
+function net() {
+	local rc=0
+
+	if [[ $opt_offline -eq 1 ]]; then
+		# offline
+		echo "OFFLINE: $*"
+	else
+		# online
+		$*
+		rc=$?
+	fi
+
+	return $rc
+}
+
 function patch_cmd() {
 	[[ -z "$1" ]] && return
 	patch -N -p0 -f < "$1" || patch -N -p1 -f < "$1"
 	return $?
+}
+
+function branch_tracking() {
+	git branch -vv | grep '^*' | \
+		sed -e 's/.*\[\(.*\).*\].*/\1/' | sed -e 's/\(.*\):.*/\1/'
 }
 
 function branch_stable() {
@@ -165,11 +186,15 @@ verify_deps sed
 #
 
 opt_config=""
+opt_offline=0
 
-while getopts ":c:h" opt; do
+while getopts ":c:Oh" opt; do
 	case "$opt" in
 	c)
 		opt_config="$OPTARG"
+		;;
+	O)
+		opt_offline=1
 		;;
 	h|?)
 		exit_usage
@@ -224,8 +249,8 @@ git reset --hard || exit_error
 
 # update upstream repo
 notice "UPDATE"
-git remote update || exit_error
-git pull || exit_error
+net git remote update || exit_error
+git reset --hard $(branch_tracking) || exit_error
 
 # create copr branch
 notice "CREATE COPR BRANCH"
