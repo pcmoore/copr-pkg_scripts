@@ -255,6 +255,7 @@ fi
 [[ -z $DIR_SRPMS ]] && exit_error "DIR_SRPMS is not set"
 [[ -z $DIR_REPO_RPM ]] && exit_error "DIR_REPO_RPM is not set"
 [[ -z $DIR_REPO_RPM_FIXES ]] && exit_error "DIR_REPO_RPM_FIXES is not set"
+[[ -z $PATCH_BRANCH_BASE_RPM ]] && exit_error "PATCH_BRANCH_BASE_RPM is not set"
 [[ -z $PKG_VARIANT ]] && exit_error "PKG_VARIANT is not set"
 
 # verify filesystem
@@ -291,7 +292,7 @@ git reset --hard $(branch_tracking) || exit_error
 # create copr branch
 notice "CREATE COPR BRANCH"
 git branch --delete --force copr &> /dev/null # || exit_error
-git checkout -b copr -t fedora/master || exit_error
+git checkout -b copr -t $PATCH_BRANCH_BASE_RPM || exit_error
 
 # if we are just dumping the version information then do it and exit
 if [[ $opt_version -eq 1 ]]; then
