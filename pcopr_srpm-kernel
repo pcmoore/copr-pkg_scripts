@@ -27,20 +27,7 @@
 ####
 # config
 
-USER_NAME=""
-USER_EMAIL=""
-
-COPR_USER=""
-COPR_PROJECT=""
-COPR_URL="https://copr.fedorainfracloud.org"
-
-DIR_PATCHES="patches"
-DIR_SRPMS="srpms"
-
-DIR_REPO_RPM=""
-DIR_REPO_RPM_FIXES=""
-
-PKG_VARIANT=""
+# NOTE: no default config provided, see the pcopr.config file
 
 ####
 # functions

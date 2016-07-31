@@ -27,11 +27,7 @@
 ####
 # config
 
-# NOTE: any existing patch files in this directory will be deleted
-DIR_PATCHES="patches"
-
-DIR_REPO_SRC=""
-DIR_REPO_SRC_FIXES=""
+# NOTE: no default config provided, see the pcopr.config file
 
 ####
 # functions
