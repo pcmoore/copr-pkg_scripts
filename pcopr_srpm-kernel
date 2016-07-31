@@ -5,6 +5,8 @@
 # Fedora COPR Kernel SRPM Generation Script
 # Paul Moore <paul@paul-moore.com>
 #
+# https://github.com/pcmoore/copr-pkg_scripts
+#
 
 #
 # (c) Copyright Red Hat, 2015
