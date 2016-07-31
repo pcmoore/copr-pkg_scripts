@@ -93,7 +93,7 @@ function exit_usage() {
 	msg "$0: [-b] [-B] [-c <config_file>] [-f] [-F] [-r <revision>]" \
 		" [-t] [-V]"
 	msg " -b   Submit the package to COPR for a release build"
-	msg " -B   Submit the package to COPR for a scratch build"
+	msg " -B   Submit the package to Koji for a scratch build"
 	msg " -c   Use the config file provided instead of pcopr.config"
 	msg " -f   Force the operation"
 	msg " -F   Skip steps to do things quicker, can be combined"
