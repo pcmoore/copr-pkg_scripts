@@ -37,7 +37,7 @@ function a_bold() {
 	if [[ -t 1 ]]; then
 		echo -e "\033[1m"$*"\033[0m"
 	else
-		echo "$*"
+		echo -e "$*"
 	fi
 }
 
@@ -46,7 +46,7 @@ function a_red() {
 	if [[ -t 1 ]]; then
 		echo -e "\E[31m"$*"\033[0m"
 	else
-		echo "$*"
+		echo -e "$*"
 	fi
 }
 
@@ -55,7 +55,7 @@ function a_yellow() {
 	if [[ -t 1 ]]; then
 		echo -e "\E[33m"$*"\033[0m"
 	else
-		echo "$*"
+		echo -e "$*"
 	fi
 }
 
@@ -64,12 +64,16 @@ function a_green() {
 	if [[ -t1 ]]; then
 		echo -e "\E[32m"$*"\033[0m"
 	else
-		echo "$*"
+		echo -e "$*"
 	fi
 }
 
 function msg() {
 	echo -e "$*"
+}
+
+function output() {
+	echo -e ">>> $*"
 }
 
 function notice() {
@@ -90,9 +94,10 @@ function exit_error() {
 }
 
 function exit_usage() {
-	msg "$0: [-h] [-c <config_file>]"
+	msg "$0: [-h] [-c <config_file>] [-x <commit_id>]"
 	msg " -c   Use the config file provided instead of pcopr.config"
 	msg " -O   Run in offline mode"
+	msg " -x   Exclude the commit, can be used multiple times"
 	exit 1
 }
 
@@ -139,9 +144,32 @@ function branch_stable() {
 function branch_merge() {
 	local branch="$1"
 	local fix_count=0
+	local commit_list=""
 
 	notice "MERGE ${branch^^}"
-	if ! git merge --squash "$branch"; then
+
+	# build the list of commits from the branch
+	local commit_list=""
+	for commit in $(git log --format=format:"%H" "$PATCH_BRANCH_BASE_SRC".."$branch"); do
+		local skip=0
+		for exclude in $opt_excludes; do
+			echo $commit | grep -q $exclude && skip=1
+		done
+		if [[ $skip -eq 0 ]]; then
+			commit_list+="$commit "
+		else
+			output "skipping $commit"
+		fi
+	done
+
+	# return if there is nothing to merge
+	if [[ -z $commit_list ]]; then
+		output "nothing to merge"
+		return
+	fi
+
+	# merge the commits
+	if ! git cherry-pick -n $commit_list; then
 		notice "FIXING ${branch^^}"
 		# NOTE: patches in the form <remote>_<branch>-<num>
 		for i in ../$DIR_REPO_SRC_FIXES/${branch//\//_}-*.patch; do
@@ -185,14 +213,18 @@ verify_deps sed
 
 opt_config=""
 opt_offline=0
+opt_excludes=""
 
-while getopts ":c:Oh" opt; do
+while getopts ":c:Ox:h" opt; do
 	case "$opt" in
 	c)
 		opt_config="$OPTARG"
 		;;
 	O)
 		opt_offline=1
+		;;
+	x)
+		opt_excludes+="$OPTARG "
 		;;
 	h|?)
 		exit_usage
@@ -227,6 +259,9 @@ fi
 
 # verify filesystem
 [[ ! -d $dir_cwd/$DIR_PATCHES ]] && exit_error "patch directory does not exist"
+
+# add to the exclude list
+opt_excludes+="$COMMIT_EXCLUDES"
 
 #
 # generate the patches
