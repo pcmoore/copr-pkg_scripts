@@ -346,11 +346,11 @@ fi
 [[ $opt_test -eq 1 ]] && exit 0
 
 # build srpm
-notice "BUILD KERNEL SRPM"
+notice "CREATE KERNEL SRPM"
 fedpkg srpm  || exit_error
 
 # store any srpms built
-notice "TRANSFERING KERNEL SRPM"
+notice "STORING KERNEL SRPM"
 for i in *.src.rpm; do
 	if [[ -r $dir_cwd/$DIR_SRPMS/$i ]]; then
 		if [[ $opt_force -eq 1 ]]; then
@@ -365,13 +365,13 @@ done
 
 # attempt any copr builds
 if [[ $opt_scratchbuild -eq 1 ]]; then
-	notice "SCRATCH BUILDING KERNEL SRPM"
+	notice "BUILDING KERNEL SRPM (SCRATCH BUILD)"
 	for i in *.src.rpm; do
 		net fedpkg scratch-build --srpm=$i
 	done
 fi
 if [[ $opt_build -eq 1 ]]; then
-	notice "BUILDING KERNEL SRPM"
+	notice "BUILDING KERNEL SRPM (COPR)"
 	for i in *.src.rpm; do
 		net copr-cli build --nowait $COPR_USER/$COPR_PROJECT $i
 	done
