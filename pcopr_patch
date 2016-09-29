@@ -178,7 +178,8 @@ function branch_merge() {
 				fix_count=$(($fix_count + 1))
 			fi
 		done
-		[[ $fix_count -eq 0 ]] && exit_error
+		[[ $fix_count -eq 0 ]] && \
+			exit_error "missing valid fixes in $DIR_REPO_SRC_FIXES/${branch//\//_}-*.patch"
 		git add -A
 	fi
 
