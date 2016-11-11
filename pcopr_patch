@@ -143,8 +143,8 @@ function branch_stable() {
 
 function branch_merge() {
 	local branch="$1"
-	local fix_count=0
 	local commit_list=""
+	local fix_patch=""
 
 	notice "MERGE ${branch^^}"
 
@@ -156,7 +156,7 @@ function branch_merge() {
 			echo $commit | grep -q $exclude && skip=1
 		done
 		if [[ $skip -eq 0 ]]; then
-			commit_list+="$commit "
+			commit_list="$commit $commit_list"
 		else
 			output "skipping $commit"
 		fi
@@ -169,19 +169,19 @@ function branch_merge() {
 	fi
 
 	# merge the commits
-	if ! git cherry-pick -n $commit_list; then
-		notice "FIXING ${branch^^}"
-		# NOTE: patches in the form <remote>_<branch>-<num>
-		for i in ../$DIR_REPO_SRC_FIXES/${branch//\//_}-*.patch; do
-			if [[ -r "$i" ]]; then
-				patch_cmd "$i" || exit_error
-				fix_count=$(($fix_count + 1))
+	for i in $commit_list; do
+		if ! git cherry-pick -n $i; then
+			notice "FIXING $i"
+			# NOTE: patches in the form <remote>_<branch>-<commit>
+			fix_patch="$DIR_REPO_SRC_FIXES/${branch//\//_}-$i.patch"
+			if [[ -r "../$fix_patch" ]]; then
+				patch_cmd "../$fix_patch" || exit_error
+			else
+				exit_error "missing valid fixes in $fix_patch"
 			fi
-		done
-		[[ $fix_count -eq 0 ]] && \
-			exit_error "missing valid fixes in $DIR_REPO_SRC_FIXES/${branch//\//_}-*.patch"
-		git add -A
-	fi
+			git add -A
+		fi
+	done
 
 	# only commit if there is something to commit
 	if [[ -n $(git status --short) ]]; then
