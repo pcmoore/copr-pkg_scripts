@@ -80,6 +80,10 @@ function notice() {
 	a_bold ">>> $*"
 }
 
+function notice_small() {
+	msg ">>> $*"
+}
+
 function warn() {
 	a_red "*** WARNING: $*"
 }
@@ -170,7 +174,16 @@ function branch_merge() {
 
 	# merge the commits
 	for i in $commit_list; do
-		if ! git cherry-pick -n $i; then
+		# display a small notice as a progress indicator
+		notice_small "merge $i"
+
+		# test to see if the commit actually has any changes
+		git show $i | grep -q "^diff " || break
+
+		# apply the commit manually
+		git show $i | diffstat -p1
+		git show $i | patch -p1
+		if [[ $? -ne 0 ]]; then
 			notice "FIXING $i"
 			# NOTE: patches in the form <remote>_<branch>-<commit>
 			fix_patch="$DIR_REPO_SRC_FIXES/${branch//\//_}-$i.patch"
@@ -179,8 +192,10 @@ function branch_merge() {
 			else
 				exit_error "missing valid fixes in $fix_patch"
 			fi
-			git add -A
 		fi
+
+		# update our merged commit
+		git add -A
 	done
 
 	# only commit if there is something to commit
@@ -207,6 +222,7 @@ verify_deps patch
 verify_deps sort
 verify_deps tail
 verify_deps sed
+verify_deps diffstat
 
 #
 # option parsing
