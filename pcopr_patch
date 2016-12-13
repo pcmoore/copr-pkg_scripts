@@ -174,11 +174,14 @@ function branch_merge() {
 
 	# merge the commits
 	for i in $commit_list; do
+		# test to see if the commit actually has any changes
+		git show $i | grep -q "^diff " || continue
+		# test to see if the commit has been applied already
+		git show $i | patch -p1 -N --dry-run --silent >& /dev/null \
+			|| continue
+
 		# display a small notice as a progress indicator
 		notice_small "merge $i"
-
-		# test to see if the commit actually has any changes
-		git show $i | grep -q "^diff " || break
 
 		# apply the commit manually
 		git show $i | diffstat -p1
