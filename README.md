@@ -9,11 +9,11 @@ Fedora COPR build system is likely required to make use of these scripts.
 Future releases of these scripts will improve both on the documentation and the
 usability of the scripts.
 
-* Setup
+## Setup
 
-Create a Fedora/COPR account if you don't already have one:
+Create a Fedora/COPR account if you don't already have one using the URL below:
 
-	https://admin.fedoraproject.org/accounts/user/new
+* https://admin.fedoraproject.org/accounts/user/new
 
 Download the COPR tools on your system:
 
@@ -52,7 +52,7 @@ are documented in the example file:
 	cd copr-project
 	$EDITOR pcopr.config
 
-* Usage
+## Usage
 
 The usage shown below is for a basic use case that creates a set of patches
 from the upstream development repository, applies them to the Fedora package,
@@ -70,7 +70,7 @@ Generate a patched Fedora SRPM and submit it to COPR for building:
 	cd copr-project
 	./pcopr_srpm-kernel -b
 
-* Reporting Issues and Contributing
+## Reporting Issues and Contributing
 
 Issues can be reported via the GitHub issue tracker and patches can be
 submitted as GitHub pull requests.
