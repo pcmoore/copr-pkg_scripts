@@ -91,7 +91,7 @@ function exit_error() {
 
 function exit_usage() {
 	msg "$0: [-b] [-B] [-c <config_file>] [-f] [-F] [-r <revision>]" \
-		" [-t] [-V]"
+		" [-R <commit_id>] [-t] [-V]"
 	msg " -b   Submit the package to COPR for a release build"
 	msg " -B   Submit the package to Koji for a scratch build"
 	msg " -c   Use the config file provided instead of pcopr.config"
@@ -99,6 +99,7 @@ function exit_usage() {
 	msg " -F   Skip steps to do things quicker, can be combined"
 	msg " -O   Run in offline mode"
 	msg " -r   Specify the package revision"
+	msg " -R   Git reference (commit/tag) to use as the base"
 	msg " -t   Test the operation"
 	msg " -V   Display the package version"
 	exit 1
@@ -173,13 +174,14 @@ opt_build=0
 opt_scratchbuild=0
 opt_force=0
 opt_revision=1
+opt_revision_base=
 opt_test=0
 opt_version=0
 opt_config=""
 opt_fast=$val_fast_all
 opt_offline=0
 
-while getopts ":c:bBhfFOr:tV" opt; do
+while getopts ":c:bBhfFOr:R:tV" opt; do
 	case "$opt" in
 	b)
 		opt_build=1
@@ -201,6 +203,9 @@ while getopts ":c:bBhfFOr:tV" opt; do
 		;;
 	r)
 		opt_revision="$OPTARG"
+		;;
+	R)
+		opt_revision_base="$OPTARG"
 		;;
 	t)
 		opt_test=1
@@ -280,6 +285,11 @@ git reset --hard $(branch_tracking) || exit_error
 notice "CREATE COPR BRANCH"
 git branch --delete --force copr &> /dev/null # || exit_error
 git checkout -b copr -t $PATCH_BRANCH_BASE_RPM || exit_error
+
+# reset if we targeting a specific commit as the base
+if [[ -n "$opt_revision_base" ]]; then
+	git reset --hard $opt_revision_base || exit_error
+fi
 
 # if we are just dumping the version information then do it and exit
 if [[ $opt_version -eq 1 ]]; then

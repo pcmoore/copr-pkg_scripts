@@ -101,6 +101,7 @@ function exit_usage() {
 	msg "$0: [-h] [-c <config_file>] [-x <commit_id>]"
 	msg " -c   Use the config file provided instead of pcopr.config"
 	msg " -O   Run in offline mode"
+	msg " -R   Git reference (commit/tag) to use as the base"
 	msg " -x   Exclude the commit, can be used multiple times"
 	exit 1
 }
@@ -234,14 +235,18 @@ verify_deps diffstat
 opt_config=""
 opt_offline=0
 opt_excludes=""
+opt_revision_base=
 
-while getopts ":c:Ox:h" opt; do
+while getopts ":c:OR:x:h" opt; do
 	case "$opt" in
 	c)
 		opt_config="$OPTARG"
 		;;
 	O)
 		opt_offline=1
+		;;
+	R)
+		opt_revision_base="$OPTARG"
 		;;
 	x)
 		opt_excludes+="$OPTARG "
@@ -309,6 +314,11 @@ git reset --hard $(branch_tracking) || exit_error
 notice "CREATE COPR BRANCH"
 git branch --delete --force copr &> /dev/null # || exit_error
 git checkout -b copr -t $PATCH_BRANCH_BASE_SRC || exit_error
+
+# reset if we targeting a specific commit as the base
+if [[ -n "$opt_revision_base" ]]; then
+	git reset --hard $opt_revision_base || exit_error
+fi
 
 # merge other trees/branches (in order)
 for i in $PATCH_BRANCH_LIST; do
