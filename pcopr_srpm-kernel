@@ -98,7 +98,7 @@ function exit_usage() {
 	msg " -f   Force the operation"
 	msg " -F   Skip steps to do things quicker, can be combined"
 	msg " -O   Run in offline mode"
-	msg " -r   Specify the package revision"
+	msg " -r   Specify the package revision (\"auto\" for autogen)"
 	msg " -R   Git reference (commit/tag) to use as the base"
 	msg " -t   Test the operation"
 	msg " -V   Display the package version"
@@ -289,6 +289,15 @@ git checkout -b copr -t $PATCH_BRANCH_BASE_RPM || exit_error
 # reset if we targeting a specific commit as the base
 if [[ -n "$opt_revision_base" ]]; then
 	git reset --hard $opt_revision_base || exit_error
+fi
+
+# determine the revision number if needed
+if [[ $opt_revision == "auto" ]]; then
+	opt_revision=1
+
+	while ls $dir_cwd/$DIR_SRPMS/kernel-$(specfile_version kernel.spec).$opt_revision.$PKG_VARIANT.*.rpm >& /dev/null; do
+		opt_revision=$(($opt_revision + 1))
+	done
 fi
 
 # if we are just dumping the version information then do it and exit
