@@ -182,7 +182,8 @@ function branch_merge() {
 			|| continue
 
 		# display a small notice as a progress indicator
-		notice_small "merge $i"
+		notice_small "merge" \
+			"$(git show -s --format="%h %<(50,trunc)(\"%s\")" $i)"
 
 		# apply the commit manually
 		git show $i | diffstat -p1
