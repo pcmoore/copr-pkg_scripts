@@ -355,6 +355,9 @@ cp kernel.spec kernel.spec.copr
 # display the changes to the specfile
 git diff kernel.spec
 
+# force a rebuild of the kernel configs
+./build_configs.sh || exit_error "failed to regenerate the kernel configs"
+
 # test rpm prep stage
 if [[ $opt_fast -lt $val_fast_prep ]]; then
 	notice "TEST KERNEL RPM PREP STAGE"
