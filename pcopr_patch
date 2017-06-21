@@ -80,10 +80,6 @@ function notice() {
 	a_bold ">>> $*"
 }
 
-function notice_small() {
-	msg ">>> $*"
-}
-
 function warn() {
 	a_red "*** WARNING: $*"
 }
@@ -150,8 +146,16 @@ function branch_merge() {
 	local branch="$1"
 	local commit_list=""
 	local fix_patch=""
+	local log_merge="patches-merge.log"
+	local log_skip="patches-skip.log"
+	local log_msg="patches-msg.log"
 
 	notice "MERGE ${branch^^}"
+
+	# reset the logs
+	> $log_merge
+	> $log_skip
+	> $log_msg
 
 	# build the list of commits from the branch
 	local commit_list=""
@@ -163,7 +167,8 @@ function branch_merge() {
 		if [[ $skip -eq 0 ]]; then
 			commit_list="$commit $commit_list"
 		else
-			output "skipping $commit"
+			output "skip $(git show -s --format="%h %<(50,trunc)(\"%s\")" $i)"
+			echo "-skip $(git show -s --format="%h %<(50,trunc)(\"%s\")" $i)" >> $log_skip
 		fi
 	done
 
@@ -182,8 +187,9 @@ function branch_merge() {
 			|| continue
 
 		# display a small notice as a progress indicator
-		notice_small "merge" \
+		output "merge" \
 			"$(git show -s --format="%h %<(50,trunc)(\"%s\")" $i)"
+		echo "+merge $(git show -s --format="%h %<(50,trunc)(\"%s\")" $i)" >> $log_merge
 
 		# apply the commit manually
 		git show $i | diffstat -p1
@@ -205,8 +211,16 @@ function branch_merge() {
 
 	# only commit if there is something to commit
 	if [[ -n $(git status --short) ]]; then
-		git commit -m "COPR automated merge of $branch" \
-			|| exit_error
+		# create a commit message
+		echo "COPR automated merge of $branch" >> $log_msg
+		echo "" >> $log_msg
+		echo "Automated merge log of $branch:" >> $log_msg
+		echo "" >> $log_msg
+		cat $log_merge >> $log_msg
+		cat $log_skip >> $log_msg
+
+		# do the commit
+		git commit -m "$(cat $log_msg)" exit_error
 		patch_count=$((patch_count + 1))
 	fi
 }
