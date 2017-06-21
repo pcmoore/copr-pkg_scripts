@@ -72,6 +72,10 @@ function msg() {
 	echo -e "$*"
 }
 
+function output() {
+	echo -e ">>> $*"
+}
+
 function notice() {
 	a_bold ">>> $*"
 }
@@ -144,6 +148,30 @@ function branch_tracking() {
 		sed -e 's/.*\[\(.*\).*\].*/\1/' | sed -e 's/\(.*\):.*/\1/'
 }
 
+function notify_email() {
+	local subject="$1"
+	local body="$2"
+
+	# leave only the attachments in the argument list
+	shift 2
+
+	[[ -z "$NOTIFY_EMAIL" ]] && return
+	[[ -z $subject || ! -r $subject ]] && return
+	[[ -z $body || ! -r $body ]] && return
+
+	output "notify $NOTIFY_EMAIL"
+
+	# send the email notification
+	if [[ $# -gt 0 ]]; then
+		cat $body | \
+			mutt -e "set copy=no" \
+				-s "$(cat $subject)" -a $* -- $NOTIFY_EMAIL
+	else
+		cat $body | \
+			mutt -e "set copy=no" -s "$(cat $subject)" $NOTIFY_EMAIL
+	fi
+}
+
 ####
 # main
 
@@ -160,6 +188,7 @@ verify_deps sed
 verify_deps patch
 verify_deps fedpkg
 verify_deps copr-cli
+verify_deps mutt
 
 #
 # option parsing
@@ -395,7 +424,13 @@ fi
 if [[ $opt_build -eq 1 ]]; then
 	notice "BUILDING KERNEL SRPM (COPR)"
 	for i in *.src.rpm; do
-		net copr-cli build --nowait $COPR_USER/$COPR_PROJECT $i
+		net copr-cli build --nowait $COPR_USER/$COPR_PROJECT $i | \
+			tee build_info.txt
+		rc=$?
+		echo "COPR build submitted $i" > build_subject.txt
+		[[ $rc -eq 0 ]] && net notify_email \
+					build_subject.txt build_info.txt \
+					$(ls $dir_cwd/$DIR_PATCHES/*.patch)
 	done
 fi
 
