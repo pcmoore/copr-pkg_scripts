@@ -220,7 +220,7 @@ function branch_merge() {
 		cat $log_skip >> $log_msg
 
 		# do the commit
-		git commit -m "$(cat $log_msg)" exit_error
+		git commit -m "$(cat $log_msg)" || exit_error
 		patch_count=$((patch_count + 1))
 	fi
 }
