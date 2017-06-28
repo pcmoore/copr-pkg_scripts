@@ -167,8 +167,8 @@ function branch_merge() {
 		if [[ $skip -eq 0 ]]; then
 			commit_list="$commit $commit_list"
 		else
-			output "skip $(git show -s --format="%h %<(50,trunc)(\"%s\")" $i)"
-			echo "-skip $(git show -s --format="%h %<(50,trunc)(\"%s\")" $i)" >> $log_skip
+			output "skip $(git show -s --format="%h %<(50,trunc)(\"%s\")" $commit)"
+			echo "-skip $(git show -s --format="%h %<(50,trunc)(\"%s\")" $commit)" >> $log_skip
 		fi
 	done
 
