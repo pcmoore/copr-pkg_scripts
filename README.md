@@ -32,7 +32,7 @@ Create a new directory, link the scripts, and copy the configuration file:
 	mkdir copr-project
 	cd copr-project
 	ln -s ../copr-pkg_scripts/pcopr_patch .
-	ln -s ../copr-pkg_scripts/pcopr_srpm-kernel .
+	ln -s ../copr-pkg_scripts/pcopr_srpm-kernel_fedora .
 	cp ../copr-pkg_scripts/pcopr.config .
 
 Clone the upstream project into the new directory and add any remote
@@ -68,7 +68,7 @@ Generate the patches to be applied to the Fedora package:
 Generate a patched Fedora SRPM and submit it to COPR for building:
 
 	cd copr-project
-	./pcopr_srpm-kernel -b
+	./pcopr_srpm-kernel_fedora -b
 
 ## Reporting Issues and Contributing
 
