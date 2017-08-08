@@ -132,7 +132,9 @@ function patch_cmd() {
 
 function branch_tracking() {
 	git branch -vv | grep '^*' | \
-		sed -e 's/.*\[\(.*\).*\].*/\1/' | sed -e 's/\(.*\):.*/\1/'
+		sed -e 's/\([^\[]*\[\)//' | \
+		sed -e 's/\([^\]]*\)\]\(.*\)/\1/' | \
+		sed -e 's/\([^:]*\).*/\1/'
 }
 
 function branch_stable() {
