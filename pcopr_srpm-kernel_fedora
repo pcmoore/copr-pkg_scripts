@@ -423,8 +423,13 @@ if [[ $opt_scratchbuild -eq 1 ]]; then
 fi
 if [[ $opt_build -eq 1 ]]; then
 	notice "BUILDING KERNEL SRPM (COPR)"
+	copr_opts=""
+	if [[ -n $COPR_CONFIG ]]; then
+		copr_opts="--config $COPR_CONFIG"
+	fi
 	for i in *.src.rpm; do
-		net copr-cli build --nowait $COPR_USER/$COPR_PROJECT $i | \
+		net copr-cli $copr_opts build \
+			--nowait $COPR_USER/$COPR_PROJECT $i | \
 			tee build_info.txt
 		rc=$?
 		echo "COPR build submitted $i" > build_subject.txt
