@@ -191,7 +191,8 @@ function branch_merge() {
 		# display a small notice as a progress indicator
 		output "merge" \
 			"$(git show -s --format="%h %<(50,trunc)(\"%s\")" $i)"
-		echo "+merge $(git show -s --format="%h %<(50,trunc)(\"%s\")" $i)" >> $log_merge
+		echo "+merge $(git show -s --format="%h %<(50,trunc)(\"%s\")" $i)" \
+			| tee -a $dir_cwd/$DIR_PATCHES/CHANGELOG >> $log_merge
 
 		# apply the commit manually
 		git show $i | diffstat -p1
@@ -244,6 +245,7 @@ verify_deps sort
 verify_deps tail
 verify_deps sed
 verify_deps diffstat
+verify_deps tee
 
 #
 # option parsing
@@ -318,6 +320,7 @@ cd $DIR_REPO_SRC
 # reset upstream repo
 notice "RESET"
 rm -f $dir_cwd/$DIR_PATCHES/*.patch
+cat /dev/null > touch $dir_cwd/$DIR_PATCHES/CHANGELOG
 git clean -f -d
 git checkout --force master || exit_error
 git reset --hard || exit_error

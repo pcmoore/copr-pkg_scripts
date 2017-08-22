@@ -359,6 +359,7 @@ fi
 cat /dev/null > copr-changelog.inc
 echo "* $(date +"%a %b %d %Y") $USER_NAME <$USER_EMAIL> [$(specfile_version kernel.spec).$opt_revision.$PKG_VARIANT]" >> copr-changelog.inc
 echo "- automated build for $COPR_URL" >> copr-changelog.inc
+cat $dir_cwd/$DIR_PATCHES/CHANGELOG | sed -e 's/^/\- /' >> copr-changelog.inc
 echo "" >> copr-changelog.inc
 
 # patch kernel specfile
