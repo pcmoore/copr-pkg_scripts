@@ -419,7 +419,13 @@ done
 if [[ $opt_scratchbuild -eq 1 ]]; then
 	notice "BUILDING KERNEL SRPM (SCRATCH BUILD)"
 	for i in *.src.rpm; do
-		net fedpkg scratch-build --srpm=$i
+		net fedpkg scratch-build --nowait --srpm=$i | \
+			tee build_info.txt
+		rc=$?
+		echo "SCRATCH build submitted $i" > build_subject.txt
+		[[ $rc -eq 0 && $NOTIFY_SCRATCH -eq 1 ]] && net notify_email \
+			build_subject.txt build_info.txt \
+			$(ls $dir_cwd/$DIR_PATCHES/*.patch 2> /dev/null)
 	done
 fi
 if [[ $opt_build -eq 1 ]]; then
@@ -434,7 +440,7 @@ if [[ $opt_build -eq 1 ]]; then
 			tee build_info.txt
 		rc=$?
 		echo "COPR build submitted $i" > build_subject.txt
-		[[ $rc -eq 0 ]] && net notify_email \
+		[[ $rc -eq 0 && $NOTIFY_COPR -eq 1 ]] && net notify_email \
 			build_subject.txt build_info.txt \
 			$(ls $dir_cwd/$DIR_PATCHES/*.patch 2> /dev/null)
 	done
