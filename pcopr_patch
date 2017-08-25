@@ -320,7 +320,7 @@ cd $DIR_REPO_SRC
 # reset upstream repo
 notice "RESET"
 rm -f $dir_cwd/$DIR_PATCHES/*.patch
-cat /dev/null > touch $dir_cwd/$DIR_PATCHES/CHANGELOG
+cat /dev/null > $dir_cwd/$DIR_PATCHES/CHANGELOG
 git clean -f -d
 git checkout --force master || exit_error
 git reset --hard || exit_error
@@ -332,7 +332,7 @@ git reset --hard $(branch_tracking) || exit_error
 
 # create copr branch
 notice "CREATE COPR BRANCH"
-git branch --delete --force copr &> /dev/null # || exit_error
+git branch --delete copr &> /dev/null
 git checkout -b copr -t $PATCH_BRANCH_BASE_SRC || exit_error
 
 # reset if we targeting a specific commit as the base
