@@ -312,7 +312,7 @@ git reset --hard $(branch_tracking) || exit_error
 
 # create copr branch
 notice "CREATE COPR BRANCH"
-git branch --delete copr &> /dev/null
+git branch -D copr &> /dev/null
 git checkout -b copr -t $PATCH_BRANCH_BASE_RPM || exit_error
 
 # reset if we targeting a specific commit as the base
