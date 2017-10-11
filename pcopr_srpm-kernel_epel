@@ -383,7 +383,7 @@ done
 cp kernel.spec kernel.spec.copr
 
 # display the changes to the specfile
-git diff kernel.spec
+git diff kernel.spec | cat -
 
 # test rpm prep stage
 if [[ $opt_fast -lt $val_fast_prep ]]; then
