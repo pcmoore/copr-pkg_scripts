@@ -161,7 +161,7 @@ function branch_merge() {
 
 	# build the list of commits from the branch
 	local commit_list=""
-	for commit in $(git log --format=format:"%H" "$PATCH_BRANCH_BASE_SRC".."$branch"); do
+	for commit in $(git log --format=format:"%H" "$base_ref".."$branch"); do
 		local skip=0
 		for exclude in $opt_excludes; do
 			echo $commit | grep -q $exclude && skip=1
@@ -334,10 +334,12 @@ git reset --hard $(branch_tracking) || exit_error
 notice "CREATE COPR BRANCH"
 git branch -D copr &> /dev/null
 git checkout -b copr -t $PATCH_BRANCH_BASE_SRC || exit_error
+base_ref=$PATCH_BRANCH_BASE_SRC
 
 # reset if we targeting a specific commit as the base
 if [[ -n "$opt_revision_base" ]]; then
 	git reset --hard $opt_revision_base || exit_error
+	base_ref=$opt_revision_base
 fi
 
 # merge other trees/branches (in order)
