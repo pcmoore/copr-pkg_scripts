@@ -296,7 +296,7 @@ git clean -f -d
 git checkout --force master || exit_error
 git reset --hard || exit_error
 
-if [[ $opt_fast -lt $val_fast_clean  ]]; then
+if [[ $opt_fast -lt $val_fast_clean ]]; then
 	# reset any ignored directories as they are likely build directories
 	notice "RESET IGNORED DIRECTORIES"
 	ls -ld $(git status --ignored --porcelain | sed -n -e '/^\!\!.*\/$/p' |
@@ -348,7 +348,7 @@ if [[ -n $(ls $dir_cwd/$DIR_PATCHES/*.patch 2> /dev/null) ]]; then
 	echo "# START OF COPR PATCHES" > copr-patches.inc
 	for i in *-COPR-*.patch; do
 		echo $(basename $i) | \
-			echo "$(sed -e 's/\([0-9]\+\)\(-.*\)/Patch1\1:'/) $i" >> copr-patches.inc  || exit_error
+			echo "$(sed -e 's/\([0-9]\+\)\(-.*\)/Patch1\1:'/) $i" >> copr-patches.inc || exit_error
 	done
 	echo "# END OF COPR PATCHES" >> copr-patches.inc
 	echo "" >> copr-patches.inc
@@ -366,7 +366,7 @@ echo "" >> copr-changelog.inc
 # NOTE: make a backup in kernel.spec.orig to make life easier
 cp kernel.spec kernel.spec.orig
 notice "PATCH KERNEL SPECFILE"
-sed -i -e 's/^# % define buildid .local/%define buildid .'$opt_revision'.'$PKG_VARIANT'/' kernel.spec  || exit_error
+sed -i -e 's/^# % define buildid .local/%define buildid .'$opt_revision'.'$PKG_VARIANT'/' kernel.spec || exit_error
 sed -n -i -e '/^# empty final patch to facilitate testing of kernel patches/r copr-patches.inc' -e 1x -e '2,${x;p}' -e '${x;p}' kernel.spec || exit_error
 sed -i -e '/^ApplyOptionalPatch linux-kernel-test.patch/i # APPLY COPR PATCHES\nfor i in %patches; do [ -z "${i##*-COPR-*}" ] && ApplyPatch `basename $i`; done\n' kernel.spec || exit_error
 
@@ -389,7 +389,7 @@ git diff kernel.spec | cat -
 # test rpm prep stage
 if [[ $opt_fast -lt $val_fast_prep ]]; then
 	notice "TEST KERNEL RPM PREP STAGE"
-	rhpkg prep  || exit_error
+	rhpkg prep || exit_error
 fi
 
 # if we are just doing a test run then exit here
@@ -397,7 +397,7 @@ fi
 
 # build srpm
 notice "CREATE KERNEL SRPM"
-rhpkg srpm  || exit_error
+rhpkg srpm || exit_error
 
 # store any srpms built
 notice "STORING KERNEL SRPM"
