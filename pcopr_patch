@@ -130,6 +130,21 @@ function patch_cmd() {
 	return $?
 }
 
+function commit_subj() {
+	local id
+	local subj
+
+	[[ -z "$1" ]] && return
+
+	id=$(git show -s --format="%h" $1)
+	subj=$(git show -s --format="%s" $1)
+	if [[ ${#subj} -gt 50 ]]; then
+		subj=$(echo "$subj" | sed -e 's/^\(.\{47\}\).*/\1\.\.\./')
+	fi
+
+	echo "$id (\"$subj\")"
+}
+
 function branch_tracking() {
 	git branch -vv | grep '^*' | \
 		sed -e 's/\([^\[]*\[\)//' | \
@@ -169,8 +184,10 @@ function branch_merge() {
 		if [[ $skip -eq 0 ]]; then
 			commit_list="$commit $commit_list"
 		else
-			output "skip $(git show -s --format="%h %<(50,trunc)(\"%s\")" $commit)"
-			echo "-skip $(git show -s --format="%h %<(50,trunc)(\"%s\")" $commit)" >> $log_skip
+			local subj
+			subj="$(commit_subj $commit)"
+			output "skip $subj"
+			echo "-skip $subj" >> $log_skip
 		fi
 	done
 
@@ -182,6 +199,8 @@ function branch_merge() {
 
 	# merge the commits
 	for i in $commit_list; do
+		local subj
+
 		# test to see if the commit actually has any changes
 		git show $i | grep -q "^diff " || continue
 		# test to see if the commit has been applied already
@@ -189,9 +208,9 @@ function branch_merge() {
 			|| continue
 
 		# display a small notice as a progress indicator
-		output "merge" \
-			"$(git show -s --format="%h %<(50,trunc)(\"%s\")" $i)"
-		echo "+merge $(git show -s --format="%h %<(50,trunc)(\"%s\")" $i)" \
+		subj="$(commit_subj $i)"
+		output "merge $subj"
+		echo "+merge $subj" \
 			| tee -a $dir_cwd/$DIR_PATCHES/CHANGELOG >> $log_merge
 
 		# apply the commit manually
