@@ -201,14 +201,19 @@ function branch_merge() {
 	for i in $commit_list; do
 		local subj
 
+		# reformat the subject message
+		subj="$(commit_subj $i)"
+
 		# test to see if the commit actually has any changes
 		git show $i | grep -q "^diff " || continue
-		# test to see if the commit has been applied already
-		git show $i | patch -p1 -N --dry-run --silent >& /dev/null \
-			|| continue
+#		# test to see if the commit has been applied already
+		if git show $i | patch -p1 -N --dry-run | \
+			grep -q -i "skipping patch"; then
+			output "existing $subj"
+			continue
+		fi
 
 		# display a small notice as a progress indicator
-		subj="$(commit_subj $i)"
 		output "merge $subj"
 		echo "+merge $subj" \
 			| tee -a $dir_cwd/$DIR_PATCHES/CHANGELOG >> $log_merge
