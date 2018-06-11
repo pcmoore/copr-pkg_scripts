@@ -318,6 +318,9 @@ else
 	exit_error "unable to find any configuration files"
 fi
 
+# config defaults
+[[ -z $PATCH_BRANCH_MASTER ]] && PATCH_BRANCH_MASTER="master"
+
 # verify configuration
 [[ -z $DIR_PATCHES ]] && exit_error "DIR_PATCHES is not set"
 [[ -z $DIR_REPO_SRC ]] && exit_error "DIR_REPO_SRC is not set"
@@ -346,7 +349,7 @@ notice "RESET"
 rm -f $dir_cwd/$DIR_PATCHES/*.patch
 cat /dev/null > $dir_cwd/$DIR_PATCHES/CHANGELOG
 git clean -f -d
-git checkout --force master || exit_error
+git checkout --force $PATCH_BRANCH_MASTER || exit_error
 git reset --hard || exit_error
 
 # update upstream repo
@@ -383,7 +386,7 @@ notice "GENERATE PATCHES"
 git format-patch -o $dir_cwd/$DIR_PATCHES -$patch_count HEAD || exit_error
 
 # jump back to master
-git checkout --force master
+git checkout --force $PATCH_BRANCH_MASTER
 
 exit 0
 
