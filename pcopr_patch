@@ -9,7 +9,7 @@
 #
 
 #
-# (c) Copyright Red Hat, 2015
+# (c) Copyright Red Hat, 2015, 2018
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of version 2 of the GNU General Public License as
@@ -130,19 +130,27 @@ function patch_cmd() {
 	return $?
 }
 
-function commit_subj() {
+function _commit_subj() {
 	local id
 	local subj
 
-	[[ -z "$1" ]] && return
+	[[ -z "$1" || -z "$2" ]] && return
 
-	id=$(git show -s --format="%h" $1)
-	subj=$(git show -s --format="%s" $1)
-	if [[ ${#subj} -gt 50 ]]; then
-		subj=$(echo "$subj" | sed -e 's/^\(.\{47\}\).*/\1\.\.\./')
+	id=$(git show -s --format="%h" $2)
+	subj=$(git show -s --format="%s" $2)
+	if [[ ${#subj} -gt $1 ]]; then
+		subj=$(echo "$subj" | sed -e 's/^\(.\{'$1'\}\).*/\1\.\.\./')
 	fi
 
 	echo "$id (\"$subj\")"
+}
+
+function commit_subj() {
+	_commit_subj 50 $1
+}
+
+function commit_subj_short() {
+	_commit_subj 25 $1
 }
 
 function branch_tracking() {
@@ -159,6 +167,7 @@ function branch_stable() {
 		| sort -V | tail -n1 | sed -e 's/.*remotes\///'
 }
 
+# TODO: look at merging branch_merge() and branch_merge_submodule()
 function branch_merge() {
 	local branch="$1"
 	local commit_list=""
@@ -252,6 +261,126 @@ function branch_merge() {
 		git commit -m "$(cat $log_msg)" || exit_error
 		patch_count=$((patch_count + 1))
 	fi
+}
+
+# TODO: look at merging branch_merge() and branch_merge_submodule()
+function branch_merge_submodule() {
+	local submodule="$1"
+	local branch="$2"
+	local commit_list=""
+	local fix_patch=""
+	local dir_base="$(pwd)"
+	local log_merge="$dir_base/patches-merge.log"
+	local log_skip="$dir_base/patches-skip.log"
+	local log_msg="$dir_base/patches-msg.log"
+
+	notice "MERGE SUB:${1^^} ${branch^^}"
+
+	# reset the logs
+	> $log_merge
+	> $log_skip
+	> $log_msg
+
+	# move into the submodule
+	cd $submodule
+
+	# build the list of commits from the branch
+	local commit_list=""
+	for commit in $(git log --format=format:"%H" "$base_ref".."$branch"); do
+		local skip=0
+		for exclude in $opt_excludes; do
+			echo $commit | grep -q $exclude && skip=1
+		done
+		if [[ $skip -eq 0 ]]; then
+			commit_list="$commit $commit_list"
+		else
+			local subj
+			subj="$(commit_subj_short $commit)"
+			output "skip $subj"
+			echo "-skip $subj" >> $log_skip
+		fi
+	done
+
+	# return if there is nothing to merge
+	if [[ -z $commit_list ]]; then
+		output "nothing to merge"
+		cd $dir_base
+		return
+	fi
+
+	# merge the commits
+	for i in $commit_list; do
+		local subj
+
+		# reformat the subject message
+		subj="$(commit_subj_short $i)"
+
+		# test to see if the commit actually has any changes
+		git show $i | grep -q "^diff " || continue
+		# test to see if the commit has been applied already
+		if git show $i | patch -p1 -N --dry-run | \
+			grep -q -i "skipping patch"; then
+			output "existing $subj"
+			continue
+		fi
+
+		# display a small notice as a progress indicator
+		output "merge $subj"
+		echo "+merge (sub:$submodule) $subj" \
+			| tee -a $dir_cwd/$DIR_PATCHES/CHANGELOG >> $log_merge
+
+		# apply the commit manually
+		git show $i | diffstat -p1
+		git show $i | patch -p1
+		if [[ $? -ne 0 ]]; then
+			notice "FIXING $i"
+			# NOTE: patches in the form <remote>_<branch>-<commit>
+			fix_patch="$DIR_REPO_SRC_FIXES/${branch//\//_}-$i.patch"
+			if [[ -r "../$fix_patch" ]]; then
+				patch_cmd "../$fix_patch" || exit_error
+			else
+				exit_error "missing valid fixes in $fix_patch"
+			fi
+		fi
+
+		# update our merged commit
+		git add -A
+	done
+
+	# return to the base of the repo
+	cd $dir_base
+
+	# only commit if there is something to commit
+	if [[ -n $(git status --short) ]]; then
+		# generate a patch file name
+		local patch_file
+		patch_file="$dir_cwd/$DIR_PATCHES/"
+		patch_file+="0000-COPR-submodule-"
+		patch_file+="$(echo $submodule | \
+			sed -e 's/\.//g;s/\//_/g;s/^_//;s/__/_/g').patch"
+
+		# create a commit message
+		echo "From: $(git config --get user.name)" \
+			"<$(git config --get user.email)>"  >> $log_msg
+		echo "Date: $(date -R)" >> $log_msg
+		echo "Subject: [PATCH] COPR automated merge of" \
+			"submodule:$submodule $branch" >> $log_msg
+		echo "" >> $log_msg
+		echo "Automated merge log of" \
+			"submodule:$submodule $branch:" >> $log_msg
+		echo "" >> $log_msg
+		cat $log_merge >> $log_msg
+		cat $log_skip >> $log_msg
+
+		# generate the diffstat/patch
+		cat $log_msg > $patch_file
+		echo "---" >> $patch_file
+		git diff --submodule=diff | diffstat >> $patch_file
+		git diff --submodule=diff | sed -n '/^diff/,$p' >> $patch_file
+	fi
+
+	# reset the submodule
+	(cd $submodule; git reset --hard)
 }
 
 ####
@@ -351,7 +480,9 @@ notice "RESET"
 rm -f $dir_cwd/$DIR_PATCHES/*.patch
 cat /dev/null > $dir_cwd/$DIR_PATCHES/CHANGELOG
 git clean -f -d
+git submodule foreach git clean -f -d
 git checkout --force $PATCH_BRANCH_MASTER || exit_error
+git submodule update --force || exit_error
 git reset --hard || exit_error
 
 # update upstream repo
@@ -371,11 +502,18 @@ if [[ -n "$opt_revision_base" ]]; then
 	base_ref=$opt_revision_base
 fi
 
+git submodule update --force || exit_error
+
 # merge other trees/branches (in order)
 for i in $PATCH_BRANCH_LIST; do
 	case "$i" in
 	stable:*)
 		branch_merge $(branch_stable $(echo ${i#stable:}))
+		;;
+	submodule:*)
+		branch_merge_submodule \
+			$(echo "$i" | cut -d':' -f 2) \
+			$(echo "$i" | cut -d':' -f 3)
 		;;
 	*)
 		branch_merge "$i"
@@ -385,10 +523,12 @@ done
 
 # generate patches
 notice "GENERATE PATCHES"
+ls $dir_cwd/$DIR_PATCHES/0000-COPR-submodule-*.patch 2>/dev/null
 git format-patch -o $dir_cwd/$DIR_PATCHES -$patch_count HEAD || exit_error
 
 # jump back to master
 git checkout --force $PATCH_BRANCH_MASTER
+git submodule update
 
 exit 0
 
