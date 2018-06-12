@@ -1,0 +1,459 @@
+#!/bin/bash
+
+####
+#
+# Fedora COPR SELinux Policy SRPM Generation Script
+# Paul Moore <paul@paul-moore.com>
+#
+# https://github.com/pcmoore/copr-pkg_scripts
+#
+
+#
+# (c) Copyright Red Hat, 2018
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of version 2 of the GNU General Public License as
+# published by the Free Software Foundation.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+#
+
+####
+# config
+
+# NOTE: no default config provided, see the pcopr.config file
+
+####
+# functions
+
+function a_bold() {
+	# only display ascii control sequence if stdout is a terminal
+	if [[ -t 1 ]]; then
+		echo -e "\033[1m"$*"\033[0m"
+	else
+		echo "$*"
+	fi
+}
+
+function a_red() {
+	# only display ascii control sequence if stdout is a terminal
+	if [[ -t 1 ]]; then
+		echo -e "\E[31m"$*"\033[0m"
+	else
+		echo "$*"
+	fi
+}
+
+function a_yellow() {
+	# only display ascii control sequence if stdout is a terminal
+	if [[ -t 1 ]]; then
+		echo -e "\E[33m"$*"\033[0m"
+	else
+		echo "$*"
+	fi
+}
+
+function a_green() {
+	# only display ascii control sequence if stdout is a terminal
+	if [[ -t1 ]]; then
+		echo -e "\E[32m"$*"\033[0m"
+	else
+		echo "$*"
+	fi
+}
+
+function msg() {
+	echo -e "$*"
+}
+
+function output() {
+	echo -e ">>> $*"
+}
+
+function notice() {
+	a_bold ">>> $*"
+}
+
+function warn() {
+	a_red "*** WARNING: $*"
+}
+
+function exit_error() {
+	if [[ -z $* ]]; then
+		a_red "*** ERROR: unknown error occurred"
+	else
+		a_red "*** ERROR:" "$*"
+	fi
+	exit 2
+}
+
+function exit_usage() {
+	msg "$0: [-b] [-B] [-c <config_file>] [-f] [-F] [-r <revision>]" \
+		" [-R <commit_id>] [-t] [-V]"
+	msg " -b   Submit the package to COPR for a release build"
+	msg " -B   Submit the package to Koji for a scratch build"
+	msg " -c   Use the config file provided instead of pcopr.config"
+	msg " -f   Force the operation"
+	msg " -F   Skip steps to do things quicker, can be combined"
+	msg " -O   Run in offline mode"
+	msg " -r   Specify the package revision (\"auto\" for autogen)"
+	msg " -R   Git reference (commit/tag) to use as the base"
+	msg " -t   Test the operation"
+	msg " -V   Display the package version"
+	exit 1
+}
+
+function verify_deps() {
+	[[ -z "$1" ]] && return
+	if ! which "$1" >& /dev/null; then
+		exit_error "install \"$1\" and include it in your \$PATH"
+	fi
+}
+
+function net() {
+	local rc=0
+
+	if [[ $opt_offline -eq 1 ]]; then
+		# offline
+		echo "OFFLINE: $*"
+	else
+		# online
+		$*
+		rc=$?
+	fi
+
+	return $rc
+}
+
+function specfile_version() {
+	[[ -z "$1" || ! -r "$1" ]] && return
+	sed -e '1,/^%changelog/d' "$1" | sed -n -e '/^*.* - .*/p' | \
+		sed -n -e '1p' | sed -e 's/\(.*\) - \(.*\)/\2/'
+}
+
+function patch_cmd() {
+	[[ -z "$1" ]] && return
+	patch -N -p0 -f < "$1" || patch -N -p1 -f < "$1"
+	return $?
+}
+
+function branch_tracking() {
+	git branch -vv | grep '^*' | \
+		sed -e 's/.*\[\(.*\).*\].*/\1/' | sed -e 's/\(.*\):.*/\1/'
+}
+
+function notify_email() {
+	local subject="$1"
+	local body="$2"
+
+	# leave only the attachments in the argument list
+	shift 2
+
+	[[ -z "$NOTIFY_EMAIL" ]] && return
+	[[ -z $subject || ! -r $subject ]] && return
+	[[ -z $body || ! -r $body ]] && return
+
+	output "notify $NOTIFY_EMAIL"
+
+	# send the email notification
+	if [[ $# -gt 0 ]]; then
+		cat $body | \
+			mutt -e "set copy=no" \
+				-s "$(cat $subject)" -a $* -- $NOTIFY_EMAIL
+	else
+		cat $body | \
+			mutt -e "set copy=no" -s "$(cat $subject)" $NOTIFY_EMAIL
+	fi
+}
+
+####
+# main
+
+# store our current working directory
+dir_cwd=$(pwd)
+
+#
+# verify dependencies
+#
+
+# verify tools
+verify_deps git
+verify_deps sed
+verify_deps patch
+verify_deps fedpkg
+verify_deps copr-cli
+verify_deps mutt
+
+#
+# option parsing
+#
+
+# $opt_fast values
+val_fast_all=0
+val_fast_clean=1
+val_fast_prep=2
+
+opt_build=0
+opt_scratchbuild=0
+opt_force=0
+opt_revision=1
+opt_revision_base=
+opt_test=0
+opt_version=0
+opt_config=""
+opt_fast=$val_fast_all
+opt_offline=0
+
+while getopts ":c:bBhfFOr:R:tV" opt; do
+	case "$opt" in
+	b)
+		opt_build=1
+		;;
+	B)
+		opt_scratchbuild=1
+		;;
+	c)
+		opt_config="$OPTARG"
+		;;
+	f)
+		opt_force=1
+		;;
+	F)
+		opt_fast=$((opt_fast + 1))
+		;;
+	O)
+		opt_offline=1
+		;;
+	r)
+		opt_revision="$OPTARG"
+		;;
+	R)
+		opt_revision_base="$OPTARG"
+		;;
+	t)
+		opt_test=1
+		;;
+	V)
+		opt_version=1
+		;;
+	h|?)
+		exit_usage
+		;;
+	esac
+done
+
+shift $(($OPTIND - 1));
+cmd="$1"
+shift
+
+#
+# load and verify the configuration
+#
+
+# load the config
+if [[ -n "$opt_config" ]]; then
+	[[ ! -r "$opt_config" ]] && exit_error "unable to open config file"
+	source "$opt_config"
+elif [[ -r "pcopr.config" ]]; then
+	source ./pcopr.config
+else
+	exit_error "unable to find any configuration files"
+fi
+
+# verify configuration
+[[ -z $USER_NAME ]] && exit_error "USER_NAME is not set"
+[[ -z $USER_EMAIL ]] && exit_error "USER_EMAIL is not set"
+[[ -z $COPR_USER ]] && exit_error "COPR_USER is not set"
+[[ -z $COPR_PROJECT ]] && exit_error "COPR_PROJECT is not set"
+[[ -z $COPR_URL ]] && exit_error "COPR_URL is not set"
+[[ -z $DIR_PATCHES ]] && exit_error "DIR_PATCHES is not set"
+[[ -z $DIR_SRPMS ]] && exit_error "DIR_SRPMS is not set"
+[[ -z $DIR_REPO_RPM ]] && exit_error "DIR_REPO_RPM is not set"
+[[ -z $DIR_REPO_RPM_FIXES ]] && exit_error "DIR_REPO_RPM_FIXES is not set"
+[[ -z $PATCH_BRANCH_BASE_RPM ]] && exit_error "PATCH_BRANCH_BASE_RPM is not set"
+[[ -z $PKG_VARIANT ]] && exit_error "PKG_VARIANT is not set"
+
+# verify filesystem
+[[ ! -d "$dir_cwd/$DIR_SRPMS" ]] && exit_error "srpms directory does not exist"
+
+#
+# generate the srpm
+#
+
+# jump to fedora repo
+cd $DIR_REPO_RPM
+
+# reset fedora repo
+notice "RESET"
+rm -f *.rpm
+git clean -f -d
+git checkout --force master || exit_error
+git reset --hard || exit_error
+
+if [[ $opt_fast -lt $val_fast_clean ]]; then
+	# reset any ignored directories as they are likely build directories
+	notice "RESET IGNORED DIRECTORIES"
+	ls -ld $(git status --ignored --porcelain | sed -n -e '/^\!\!.*\/$/p' |
+		sed -e 's/\!\![ \t]*\(.*\)\/$/\1/')
+	rm -rf $(git status --ignored --porcelain | sed -n -e '/^\!\!.*\/$/p' |
+		sed -e 's/\!\![ \t]*\(.*\)\/$/\1/')
+fi
+
+# update fedora repo
+notice "UPDATE"
+net git remote update || exit_error
+git reset --hard $(branch_tracking) || exit_error
+
+# create copr branch
+notice "CREATE COPR BRANCH"
+git branch -D copr &> /dev/null
+git checkout -b copr -t $PATCH_BRANCH_BASE_RPM || exit_error
+
+# reset if we targeting a specific commit as the base
+if [[ -n "$opt_revision_base" ]]; then
+	git reset --hard $opt_revision_base || exit_error
+fi
+
+# determine the revision number if needed
+if [[ $opt_revision == "auto" ]]; then
+	opt_revision=1
+
+	while ls $dir_cwd/$DIR_SRPMS/selinux-policy-$(specfile_version selinux-policy.spec).$opt_revision.$PKG_VARIANT.*.rpm >& /dev/null; do
+		opt_revision=$(($opt_revision + 1))
+	done
+fi
+
+# if we are just dumping the version information then do it and exit
+if [[ $opt_version -eq 1 ]]; then
+	echo "packge version: $(specfile_version selinux-policy.spec).$opt_revision.$PKG_VARIANT"
+	exit 0
+fi
+
+# copy patches (if patches are present)
+notice "COPY SELINUX POLICY PATCHES"
+if [[ -n $(ls $dir_cwd/$DIR_PATCHES/*.patch 2> /dev/null) ]]; then
+	cp $dir_cwd/$DIR_PATCHES/*.patch . || exit_error
+	ls -1 *-COPR-*.patch
+fi
+
+# generate specfile patch snippet (if patches are present)
+notice "GENERATE SPECFILE PATCH REFERENCES"
+if [[ -n $(ls $dir_cwd/$DIR_PATCHES/*.patch 2> /dev/null) ]]; then
+	patch_count=0
+	echo "# START OF COPR PATCHES" > copr-patches.inc
+	echo "# START OF COPR PATCH APPLICATION" > copr-patches-apply.inc
+
+echo 'echo "PMD: $(pwd)"' >> copr-patches-apply.inc
+
+	for i in *-COPR-*.patch; do
+		echo "Patch100${patch_count}: $i" >> copr-patches.inc || exit_error
+		echo "%patch100${patch_count} -p1" >> copr-patches-apply.inc || exit_error
+		patch_count=$(($patch_count + 1))
+	done
+	echo "# START OF COPR PATCH APPLICATION" >> copr-patches-apply.inc
+	echo "# END OF COPR PATCHES" >> copr-patches.inc
+	echo "" >> copr-patches.inc
+	cat copr-patches.inc
+fi
+
+# generate specfile changelog snippet
+cat /dev/null > copr-changelog.inc
+echo "* $(date +"%a %b %d %Y") $USER_NAME <$USER_EMAIL> - $(specfile_version selinux-policy.spec).$opt_revision.$PKG_VARIANT" >> copr-changelog.inc
+echo "- automated build for $COPR_URL" >> copr-changelog.inc
+cat $dir_cwd/$DIR_PATCHES/CHANGELOG | sed -e 's/^/\- /' >> copr-changelog.inc
+echo "" >> copr-changelog.inc
+
+# patch selinux-policy specfile
+# NOTE: make a backup in selinux-policy.spec.orig to make life easier
+cp selinux-policy.spec selinux-policy.spec.orig
+notice "PATCH SELINUX-POLICY SPECFILE"
+sed -i -e 's/^\(Release:[ \t]*.*\)\(%.*\)/\1.'$opt_revision'.'$PKG_VARIANT'\2/' selinux-policy.spec || exit_error
+sed -i -e '/^Source[0-9]\+:[ \t]*rpm.macros/r copr-patches.inc' selinux-policy.spec || exit_error
+sed -i -e '/^cp \$contrib_path/r copr-patches-apply.inc' selinux-policy.spec || exit_error
+
+# make a note in the changelog
+sed -i -e '/^%changelog/ r copr-changelog.inc' selinux-policy.spec || exit_error
+
+# apply fixes
+notice "FIXING SELINUX-POLICY PACKAGE"
+for i in ../$DIR_REPO_RPM_FIXES/*.patch; do
+	if [[ -r "$i" ]]; then
+		patch_cmd "$i" || exit_error
+	fi
+done
+# NOTE: make a backup in selinux-policy.spec.copr to make life easier
+cp selinux-policy.spec selinux-policy.spec.copr
+
+# display the changes to the specfile
+git diff selinux-policy.spec
+
+# test rpm prep stage
+if [[ $opt_fast -lt $val_fast_prep ]]; then
+	notice "TEST SELINUX-POLICY RPM PREP STAGE"
+	fedpkg prep || exit_error
+fi
+
+# if we are just doing a test run then exit here
+[[ $opt_test -eq 1 ]] && exit 0
+
+# build srpm
+notice "CREATE SELINUX-POLICY SRPM"
+fedpkg srpm || exit_error
+
+# store any srpms built
+notice "STORING SELINUX-POLICY SRPM"
+for i in *.src.rpm; do
+	if [[ -r $dir_cwd/$DIR_SRPMS/$i ]]; then
+		if [[ $opt_force -eq 1 ]]; then
+			warn "srpm $i already exits"
+		else
+			exit_error "srpm $i already exits"
+		fi
+	fi
+	cp $i $dir_cwd/$DIR_SRPMS
+	ls -l $dir_cwd/$DIR_SRPMS/$i
+done
+
+# attempt any copr builds
+if [[ $opt_scratchbuild -eq 1 ]]; then
+	notice "BUILDING SELINUX-POLICY SRPM (SCRATCH BUILD)"
+	for i in *.src.rpm; do
+		net fedpkg scratch-build --nowait --srpm=$i | \
+			tee build_info.txt
+		rc=$?
+		echo "SCRATCH build submitted $i" > build_subject.txt
+		[[ $rc -eq 0 && $NOTIFY_SCRATCH -eq 1 ]] && net notify_email \
+			build_subject.txt build_info.txt \
+			$(ls $dir_cwd/$DIR_PATCHES/*.patch 2> /dev/null)
+	done
+fi
+if [[ $opt_build -eq 1 ]]; then
+	notice "BUILDING SELINUX-POLICY SRPM (COPR)"
+	copr_opts=""
+	if [[ -n $COPR_CONFIG ]]; then
+		copr_opts="--config $COPR_CONFIG"
+	fi
+	for i in *.src.rpm; do
+		net copr-cli $copr_opts build \
+			--nowait $COPR_USER/$COPR_PROJECT $i | \
+			tee build_info.txt
+		rc=$?
+		echo "COPR build submitted $i" > build_subject.txt
+		[[ $rc -eq 0 && $NOTIFY_COPR -eq 1 ]] && net notify_email \
+			build_subject.txt build_info.txt \
+			$(ls $dir_cwd/$DIR_PATCHES/*.patch 2> /dev/null)
+	done
+fi
+
+# jump back to master
+git checkout --force master
+
+exit 0
+
+# kate: syntax bash;
