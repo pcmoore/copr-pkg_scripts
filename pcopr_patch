@@ -206,7 +206,7 @@ function branch_merge() {
 
 		# test to see if the commit actually has any changes
 		git show $i | grep -q "^diff " || continue
-#		# test to see if the commit has been applied already
+		# test to see if the commit has been applied already
 		if git show $i | patch -p1 -N --dry-run | \
 			grep -q -i "skipping patch"; then
 			output "existing $subj"
