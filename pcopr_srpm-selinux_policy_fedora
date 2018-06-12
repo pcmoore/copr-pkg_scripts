@@ -348,9 +348,6 @@ if [[ -n $(ls $dir_cwd/$DIR_PATCHES/*.patch 2> /dev/null) ]]; then
 	patch_count=0
 	echo "# START OF COPR PATCHES" > copr-patches.inc
 	echo "# START OF COPR PATCH APPLICATION" > copr-patches-apply.inc
-
-echo 'echo "PMD: $(pwd)"' >> copr-patches-apply.inc
-
 	for i in *-COPR-*.patch; do
 		echo "Patch100${patch_count}: $i" >> copr-patches.inc || exit_error
 		echo "%patch100${patch_count} -p1" >> copr-patches-apply.inc || exit_error
