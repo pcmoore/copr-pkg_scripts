@@ -244,7 +244,7 @@ function branch_merge() {
 		# update our merged commit
 		git add $(git status --porcelain | 
 			awk '{ print $2 }' | 
-			sed -n '/patches-merge\|msg\|skip\.log/!p;')
+			sed -n '/patches-merge\|skip\.log/!p;')
 	done
 
 	# only commit if there is something to commit
