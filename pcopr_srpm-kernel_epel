@@ -331,7 +331,7 @@ fi
 
 # if we are just dumping the version information then do it and exit
 if [[ $opt_version -eq 1 ]]; then
-	echo "packge version: $(specfile_version kernel.spec).$opt_revision.$PKG_VARIANT"
+	echo "package version: $(specfile_version kernel.spec).$opt_revision.$PKG_VARIANT"
 	exit 0
 fi
 
