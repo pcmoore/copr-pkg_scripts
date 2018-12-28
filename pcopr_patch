@@ -32,6 +32,9 @@
 ####
 # functions
 
+# hold the merged commits
+commits_merged=""
+
 function a_bold() {
 	# only display ascii control sequence if stdout is a terminal
 	if [[ -t 1 ]]; then
@@ -213,6 +216,12 @@ function branch_merge() {
 		# reformat the subject message
 		subj="$(commit_subj $i)"
 
+		# already merged via another branch?
+		if echo "$commits_merged" | grep -q "$i"; then
+			output "dup $subj"
+			continue
+		fi
+
 		# test to see if the commit actually has any changes
 		git show $i | grep -q "^diff " || continue
 		# test to see if the commit has been applied already
@@ -242,6 +251,7 @@ function branch_merge() {
 		fi
 
 		# update our merged commit
+		commits_merged+=" $i"
 		git add $(git status --porcelain | 
 			awk '{ print $2 }' | 
 			sed -n '/patches-merge\|skip\.log/!p;')
@@ -315,6 +325,12 @@ function branch_merge_submodule() {
 		# reformat the subject message
 		subj="$(commit_subj_short $i)"
 
+		# already merged via another branch?
+		if echo "$commits_merged" | grep -q "$i"; then
+			output "dup $subj"
+			continue
+		fi
+
 		# test to see if the commit actually has any changes
 		git show $i | grep -q "^diff " || continue
 		# test to see if the commit has been applied already
@@ -344,6 +360,7 @@ function branch_merge_submodule() {
 		fi
 
 		# update our merged commit
+		commits_merged+=" $i"
 		git add -A
 	done
 
