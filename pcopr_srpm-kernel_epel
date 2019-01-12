@@ -358,7 +358,7 @@ fi
 # generate specfile changelog snippet
 cat /dev/null > copr-changelog.inc
 echo "* $(date +"%a %b %d %Y") $USER_NAME <$USER_EMAIL> [$(specfile_version kernel.spec).$opt_revision.$PKG_VARIANT]" >> copr-changelog.inc
-echo "- automated build for $COPR_URL" >> copr-changelog.inc
+echo "- generated using https://github.com/pcmoore/copr-pkg_scripts" >> copr-changelog.inc
 cat $dir_cwd/$DIR_PATCHES/CHANGELOG | sed -e 's/^/\- /' >> copr-changelog.inc
 echo "" >> copr-changelog.inc
 
