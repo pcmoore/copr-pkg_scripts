@@ -27,12 +27,13 @@ Clone the GitHub repository into its own directory:
 
 	git clone https://github.com/pcmoore/copr-pkg_scripts.git
 
-Create a new directory, link the scripts, and copy the configuration file:
+Create a new directory, link the scripts (the Fedora Rawhide kernel script is
+used in the example below), and copy the configuration file:
 
 	mkdir copr-project
 	cd copr-project
 	ln -s ../copr-pkg_scripts/pcopr_patch .
-	ln -s ../copr-pkg_scripts/pcopr_srpm-kernel_fedora .
+	ln -s ../copr-pkg_scripts/pcopr_srpm-kernel_rawhide .
 	cp ../copr-pkg_scripts/pcopr.config .
 
 Clone the upstream project into the new directory and add any remote
