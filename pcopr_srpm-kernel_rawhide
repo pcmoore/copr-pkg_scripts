@@ -145,7 +145,8 @@ function specfile_version_macros() {
 	fedora_build=$(eval "echo $(echo $fedora_build | sed 's/{?/{/g;s/%/\$/g' )")
 
 	local base_sublevel=$(cat $1 | sed -n 's/^%\(global\|define\)[ \t]\+base_sublevel[ \t]\+\(.*\)/\2/p')
-	local upstream_sublevel=$(cat $1 | sed -n 's/^%\(global\|define\)[ \t]\+upstream_sublevel[ \t]\+\(.*\)/\2/p')
+	local upstream_sublevel=$(cat $1 | sed -n 's/^%\(global\|define\)[ \t]\+upstream_sublevel[ \t]\+\(.*\)/\2/p' | sed 's/%/$/g')
+	upstream_sublevel="$(eval "echo $upstream_sublevel")"
 	local stable_update=$(cat $1 | sed -n 's/^%\(global\|define\)[ \t]\+stable_update[ \t]\+\(.*\)/\2/p')
 	local rcrev=$(cat $1 | sed -n 's/^%\(global\|define\)[ \t]\+rcrev[ \t]\+\(.*\)/\2/p')
 	local gitrev=$(cat $1 | sed -n 's/^%\(global\|define\)[ \t]\+gitrev[ \t]\+\(.*\)/\2/p')
