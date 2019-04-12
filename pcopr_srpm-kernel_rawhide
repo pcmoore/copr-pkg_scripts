@@ -337,6 +337,7 @@ cd $DIR_REPO_RPM
 # reset fedora repo
 notice "RESET"
 rm -f *.rpm
+rm -rf kernel-headers
 git clean -f -d
 git checkout --force master || exit_error
 git reset --hard || exit_error
@@ -433,14 +434,18 @@ git diff kernel.spec
 # force a rebuild of the kernel configs
 ./build_configs.sh || exit_error "failed to regenerate the kernel configs"
 
-# test rpm prep stage
-if [[ $opt_fast -lt $val_fast_prep ]]; then
-	notice "TEST KERNEL RPM PREP STAGE"
-	fedpkg prep || exit_error
-fi
+# rpm prep stage
+notice "TEST KERNEL RPM PREP STAGE"
+fedpkg prep || exit_error
 
 # if we are just doing a test run then exit here
 [[ $opt_test -eq 1 ]] && exit 0
+
+# build the kernel-headers source tarball
+notice "BUILDING THE HEADERS SOURCE TARBALL"
+fedpkg clone -a kernel-headers || exit_error
+./scripts/create_headers_tarball.sh || exit_error
+(cd ./kernel-headers; fedpkg srpm) || exit_error
 
 # build srpm
 notice "CREATE KERNEL SRPM"
@@ -448,8 +453,8 @@ fedpkg srpm || exit_error
 
 # store any srpms built
 notice "STORING KERNEL SRPM"
-for i in *.src.rpm; do
-	if [[ -r $dir_cwd/$DIR_SRPMS/$i ]]; then
+for i in $(find . -name "*.src.rpm"); do
+	if [[ -r $dir_cwd/$DIR_SRPMS/$(basename $i) ]]; then
 		if [[ $opt_force -eq 1 ]]; then
 			warn "srpm $i already exits"
 		else
@@ -457,17 +462,18 @@ for i in *.src.rpm; do
 		fi
 	fi
 	cp $i $dir_cwd/$DIR_SRPMS
-	ls -l $dir_cwd/$DIR_SRPMS/$i
+	ls -l $dir_cwd/$DIR_SRPMS/$(basename $i)
 done
 
 # attempt any copr builds
 if [[ $opt_scratchbuild -eq 1 ]]; then
 	notice "BUILDING KERNEL SRPM (SCRATCH BUILD)"
-	for i in *.src.rpm; do
+	for i in $(find . -name "*.src.rpm"); do
 		net fedpkg scratch-build --nowait --srpm=$i | \
 			tee build_info.txt
 		rc=$?
-		echo "SCRATCH build submitted $i" > build_subject.txt
+		echo "SCRATCH build submitted $(basename $i)" | \
+			> build_subject.txt
 		[[ $rc -eq 0 && $NOTIFY_SCRATCH -eq 1 ]] && net notify_email \
 			build_subject.txt build_info.txt \
 			$(ls $dir_cwd/$DIR_PATCHES/*.patch 2> /dev/null)
@@ -479,12 +485,12 @@ if [[ $opt_build -eq 1 ]]; then
 	if [[ -n $COPR_CONFIG ]]; then
 		copr_opts="--config $COPR_CONFIG"
 	fi
-	for i in *.src.rpm; do
+	for i in $(find . -name "*.src.rpm"); do
 		net copr-cli $copr_opts build \
 			--nowait $COPR_USER/$COPR_PROJECT $i | \
 			tee build_info.txt
 		rc=$?
-		echo "COPR build submitted $i" > build_subject.txt
+		echo "COPR build submitted $(basename $i)" > build_subject.txt
 		[[ $rc -eq 0 && $NOTIFY_COPR -eq 1 ]] && net notify_email \
 			build_subject.txt build_info.txt \
 			$(ls $dir_cwd/$DIR_PATCHES/*.patch 2> /dev/null)
