@@ -445,7 +445,11 @@ fedpkg prep || exit_error
 notice "BUILDING THE HEADERS SOURCE TARBALL"
 fedpkg clone -a kernel-headers || exit_error
 ./scripts/create_headers_tarball.sh || exit_error
-(cd ./kernel-headers; fedpkg srpm) || exit_error
+if [[ "$(specfile_version_changelog kernel.spec)" == "$(specfile_version_changelog kernel-headers/kernel-headers.spec)" ]]; then
+	(cd ./kernel-headers; fedpkg srpm) || exit_error
+else
+	warn "kernel-headers revision mismatch, skipping"
+fi
 
 # build srpm
 notice "CREATE KERNEL SRPM"
