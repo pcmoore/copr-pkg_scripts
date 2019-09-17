@@ -151,10 +151,6 @@ function specfile_version_macros() {
 	local rcrev=$(cat $1 | sed -n 's/^%\(global\|define\)[ \t]\+rcrev[ \t]\+\(.*\)/\2/p')
 	local gitrev=$(cat $1 | sed -n 's/^%\(global\|define\)[ \t]\+gitrev[ \t]\+\(.*\)/\2/p')
 
-	# we only care about -rc kernels for now
-	local rpmversion=$(cat $1 | sed -n 's/^%\(global\|define\)[ \t]\+rpmversion[ \t]\+\(.*\)/\2/p' | grep "upstream_sublevel")
-	rpmversion=$(eval "echo $(echo $rpmversion | sed 's/{?/{/g;s/%/\$/g' )")
-
 	# unfortunately we have to force the rctag and gittag
 	local rctag
 	if [[ $rcrev -eq 0 ]]; then
@@ -169,8 +165,20 @@ function specfile_version_macros() {
 		gittag=".git$gitrev"
 	fi
 
-	# we only care about -rc kernels for now
-	local pkg_release=$(cat $1 | sed -n 's/^%\(global\|define\)[ \t]\+pkg_release[ \t]\+\(.*\)/\2/p' | grep "rctag")
+	local released_kernel=$(cat $1 | sed -n 's/^%\(global\|define\)[ \t]\+released_kernel[ \t]\+\(.*\)/\2/p')
+
+	local rpm_version
+	local pkg_release
+	if [[ $released_kernel -eq 0 ]]; then
+		# -rc kernels
+		rpmversion=$(cat $1 | sed -n 's/^%\(global\|define\)[ \t]\+rpmversion[ \t]\+\(.*\)/\2/p' | grep "upstream_sublevel")
+		pkg_release=$(cat $1 | sed -n 's/^%\(global\|define\)[ \t]\+pkg_release[ \t]\+\(.*\)/\2/p' | grep "rctag")
+	else
+		# release kernels
+		rpmversion=$(cat $1 | sed -n 's/^%\(global\|define\)[ \t]\+rpmversion[ \t]\+\(.*\)/\2/p' | grep -v "upstream_sublevel")
+		pkg_release=$(cat $1 | sed -n 's/^%\(global\|define\)[ \t]\+pkg_release[ \t]\+\(.*\)/\2/p' | grep -v "rctag")
+	fi
+	rpmversion=$(eval "echo $(echo $rpmversion | sed 's/{?/{/g;s/%/\$/g' )")
 	pkg_release=$(eval "echo $(echo $pkg_release | sed 's/{?/{/g;s/%/\$/g' )")
 
 	# put it all together
