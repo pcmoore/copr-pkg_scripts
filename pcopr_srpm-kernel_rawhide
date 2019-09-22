@@ -484,10 +484,19 @@ done
 if [[ $opt_scratchbuild -eq 1 ]]; then
 	notice "BUILDING KERNEL SRPM (SCRATCH BUILD)"
 	for i in $(find . -name "*.src.rpm"); do
-		net fedpkg scratch-build --nowait --srpm=$i | \
-			tee build_info.txt
+		net fedpkg scratch-build --nowait --srpm=$i \
+			> build_info.txt
 		rc=$?
-		echo "SCRATCH build submitted $(basename $i)" | \
+		if [[ $rc -ne 0 ]]; then
+			# reset/rewrite the build_info.txt file
+			> build_info.txt
+			echo "Built package: $i" >> build_info.txt
+			echo "Scratch build submission failed (rc=$rc)" \
+				>> build_info.txt
+		else
+			cat build_info.txt
+		fi
+		echo "SCRATCH build submitted $(basename $i)" \
 			> build_subject.txt
 		[[ $rc -eq 0 && $NOTIFY_SCRATCH -eq 1 ]] && net notify_email \
 			build_subject.txt build_info.txt \
@@ -502,11 +511,20 @@ if [[ $opt_build -eq 1 ]]; then
 	fi
 	for i in $(find . -name "*.src.rpm"); do
 		net copr-cli $copr_opts build \
-			--nowait $COPR_USER/$COPR_PROJECT $i | \
-			tee build_info.txt
+			--nowait $COPR_USER/$COPR_PROJECT $i \
+			> build_info.txt
 		rc=$?
+		if [[ $rc -ne 0 ]]; then
+			# reset/rewrite the build_info.txt file
+			> build_info.txt
+			echo "Built package: $i" >> build_info.txt
+			echo "COPR submission failed (rc=$rc)" \
+				>> build_info.txt
+		else
+			cat build_info.txt
+		fi
 		echo "COPR build submitted $(basename $i)" > build_subject.txt
-		[[ $rc -eq 0 && $NOTIFY_COPR -eq 1 ]] && net notify_email \
+		[[ $NOTIFY_COPR -eq 1 ]] && net notify_email \
 			build_subject.txt build_info.txt \
 			$(ls $dir_cwd/$DIR_PATCHES/*.patch 2> /dev/null)
 	done
