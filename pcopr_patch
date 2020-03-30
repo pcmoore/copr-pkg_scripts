@@ -245,6 +245,10 @@ function branch_merge() {
 			fix_patch="$DIR_REPO_SRC_FIXES/${branch//\//_}-$i.patch"
 			if [[ -r "../$fix_patch" ]]; then
 				patch_cmd "../$fix_patch" || exit_error
+				# remove any leftover rejects
+				rm $(git ls-files \
+					--others --exclude-standard | \
+				     grep ".rej$")
 			else
 				exit_error "missing valid fixes in $fix_patch"
 			fi
@@ -252,9 +256,11 @@ function branch_merge() {
 
 		# update our merged commit
 		commits_merged+=" $i"
+		[[ -n "$(git ls-files --others --exclude-standard)" ]] &&
+			git add $(git ls-files --others --exclude-standard)
 		git add $(git status --porcelain | 
-			awk '{ print $2 }' | 
-			sed -n '/patches-merge\|skip\.log/!p;')
+			  awk '{ print $2 }' |
+			  sed -n '/patches-merge\|skip\.log/!p;')
 	done
 
 	# only commit if there is something to commit
@@ -268,7 +274,7 @@ function branch_merge() {
 		cat $log_skip >> $log_msg
 
 		# do the commit
-		git commit -m "$(cat $log_msg)" || exit_error
+		git commit -a -m "$(cat $log_msg)" || exit_error
 		patch_count=$((patch_count + 1))
 	fi
 }
@@ -354,6 +360,10 @@ function branch_merge_submodule() {
 			fix_patch="$DIR_REPO_SRC_FIXES/${branch//\//_}-$i.patch"
 			if [[ -r "../$fix_patch" ]]; then
 				patch_cmd "../$fix_patch" || exit_error
+				# remove any leftover rejects
+				rm $(git ls-files \
+					--others --exclude-standard | \
+				     grep ".rej$")
 			else
 				exit_error "missing valid fixes in $fix_patch"
 			fi
