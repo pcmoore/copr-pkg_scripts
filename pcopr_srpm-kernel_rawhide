@@ -352,6 +352,10 @@ fi
 # jump to fedora repo
 cd $DIR_REPO_RPM
 
+# git garbage collection
+notice "REPO GARBAGE COLLECTION"
+git gc
+
 # reset fedora repo
 notice "RESET"
 rm -f *.rpm

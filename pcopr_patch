@@ -502,6 +502,10 @@ patch_count=0
 # jump to upstream repo
 cd $DIR_REPO_SRC
 
+# git garbage collection
+notice "REPO GARBAGE COLLECTION"
+git gc
+
 # reset upstream repo
 notice "RESET"
 rm -f $dir_cwd/$DIR_PATCHES/*.patch
