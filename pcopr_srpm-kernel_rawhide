@@ -466,8 +466,12 @@ notice "TEST KERNEL RPM PREP STAGE"
 # FIXME: temporary hack until we can sort out the kernel-headers package
 notice "BUILDING THE KERNEL-HEADERS PACKAGE"
 fedpkg clone -a kernel-headers
-(cd kernel-headers; fedpkg srpm; mv *.src.rpm ../)
-rm -rf kernel-headers
+(cd kernel-headers; fedpkg srpm)
+if [[ ! -r $dir_cwd/$DIR_SRPMS/$(basename kernel-headers/*.src.rpm) ]]; then
+	mv kernel-headers/*.src.rpm .
+else
+	rm -f kernel-headers/*.src.rpm
+fi
 
 # build srpm
 notice "CREATE KERNEL SRPM"
