@@ -477,7 +477,7 @@ else
 fi
 
 # config defaults
-[[ -z $PATCH_BRANCH_MASTER ]] && PATCH_BRANCH_MASTER="master"
+[[ -z $PATCH_BRANCH_MAIN ]] && PATCH_BRANCH_MAIN="master"
 
 # verify configuration
 [[ -z $DIR_PATCHES ]] && exit_error "DIR_PATCHES is not set"
@@ -512,7 +512,7 @@ rm -f $dir_cwd/$DIR_PATCHES/*.patch
 cat /dev/null > $dir_cwd/$DIR_PATCHES/CHANGELOG
 git clean -f -d
 git submodule foreach git clean -f -d
-git checkout --force $PATCH_BRANCH_MASTER || exit_error
+git checkout --force $PATCH_BRANCH_MAIN || exit_error
 git submodule update --force || exit_error
 git reset --hard || exit_error
 
@@ -557,8 +557,8 @@ notice "GENERATE PATCHES"
 ls $dir_cwd/$DIR_PATCHES/0000-COPR-submodule-*.patch 2>/dev/null
 git format-patch -o $dir_cwd/$DIR_PATCHES -$patch_count HEAD || exit_error
 
-# jump back to master
-git checkout --force $PATCH_BRANCH_MASTER
+# jump back to the main branch
+git checkout --force $PATCH_BRANCH_MAIN
 git submodule update
 
 exit 0

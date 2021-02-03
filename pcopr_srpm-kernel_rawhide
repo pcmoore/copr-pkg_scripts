@@ -361,7 +361,7 @@ notice "RESET"
 rm -f *.rpm
 rm -rf kernel-headers
 git clean -f -d
-git checkout --force master || exit_error
+git checkout --force rawhide || exit_error
 git reset --hard || exit_error
 
 if [[ $opt_fast -lt $val_fast_clean ]]; then
@@ -552,8 +552,8 @@ if [[ $opt_build -eq 1 ]]; then
 	done
 fi
 
-# jump back to master
-git checkout --force master
+# jump back to the main branch
+git checkout --force rawhide
 
 exit 0
 
