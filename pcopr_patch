@@ -503,8 +503,10 @@ patch_count=0
 cd $DIR_REPO_SRC
 
 # git garbage collection
-notice "REPO GARBAGE COLLECTION"
-git gc
+if [[ $DIR_REPO_SRC_GC -eq 1 ]]; then
+	notice "REPO GARBAGE COLLECTION"
+	git gc
+fi
 
 # reset upstream repo
 notice "RESET"
