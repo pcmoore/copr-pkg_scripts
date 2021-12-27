@@ -521,6 +521,9 @@ git reset --hard || exit_error
 # update upstream repo
 notice "UPDATE"
 net git remote update || exit_error
+for i in $(git remote); do
+	git remote prune $i
+done
 git reset --hard $(branch_tracking) || exit_error
 
 # create copr branch
