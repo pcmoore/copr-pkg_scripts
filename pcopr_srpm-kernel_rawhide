@@ -457,6 +457,10 @@ for i in ../$DIR_REPO_RPM_FIXES/*.patch; do
 		patch_cmd "$i" || exit_error
 	fi
 done
+
+# FIXME: 20220413 aarch64 builds complain if the version string is too long
+sed -i -e 's/\(define[ \t]\+pkgrelease[ \t]\+.*git.\{8\}\)\([a-zA-Z0-9]\+\)/\1/' kernel.spec || exit_error
+
 # NOTE: make a backup in kernel.spec.copr to make life easier
 cp kernel.spec kernel.spec.copr
 
