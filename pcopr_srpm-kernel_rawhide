@@ -388,6 +388,14 @@ if [[ -n "$opt_revision_base" ]]; then
 	git reset --hard $opt_revision_base || exit_error
 fi
 
+# NOTE: make a backup in kernel.spec.orig to make life easier
+cp kernel.spec kernel.spec.orig
+
+# FIXME: aarch64 builds complain if the version string is too long
+notice "FIXING RELEASE STRING LENGTH"
+sed -i -e 's/\(define[ \t]\+pkgrelease[ \t]\+.*git.\{8\}\)\([a-zA-Z0-9]\+\)/\1/' kernel.spec || exit_error
+sed -i -e 's/\(define[ \t]\+specrelease[ \t]\+.*git.\{8\}\)\([a-zA-Z0-9]\+\)/\1/' kernel.spec || exit_error
+
 # determine the revision number if needed
 if [[ $opt_revision == "auto" ]]; then
 	opt_revision=1
@@ -440,8 +448,6 @@ cat $dir_cwd/$DIR_PATCHES/CHANGELOG | sed -e 's/^/\- /' >> copr-changelog.inc
 echo "" >> copr-changelog.inc
 
 # patch kernel specfile
-# NOTE: make a backup in kernel.spec.orig to make life easier
-cp kernel.spec kernel.spec.orig
 notice "PATCH KERNEL SPECFILE"
 sed -i -e 's/^# define buildid .local/%define buildid .'$opt_revision'.'$PKG_VARIANT'/' kernel.spec || exit_error
 sed -n -i -e '/^# END OF PATCH DEFINITIONS/r copr-patches.inc' -e 1x -e '2,${x;p}' -e '${x;p}' kernel.spec || exit_error
@@ -457,10 +463,6 @@ for i in ../$DIR_REPO_RPM_FIXES/*.patch; do
 		patch_cmd "$i" || exit_error
 	fi
 done
-
-# FIXME: 20220413 aarch64 builds complain if the version string is too long
-sed -i -e 's/\(define[ \t]\+pkgrelease[ \t]\+.*git.\{8\}\)\([a-zA-Z0-9]\+\)/\1/' kernel.spec || exit_error
-sed -i -e 's/\(define[ \t]\+specrelease[ \t]\+.*git.\{8\}\)\([a-zA-Z0-9]\+\)/\1/' kernel.spec || exit_error
 
 # NOTE: make a backup in kernel.spec.copr to make life easier
 cp kernel.spec kernel.spec.copr
