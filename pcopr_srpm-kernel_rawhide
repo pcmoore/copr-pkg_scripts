@@ -188,11 +188,16 @@ function OLD_specfile_version_macros() {
 function specfile_version_macros() {
 	[[ -z "$1" || ! -r "$1" ]] && return
 
+	local buildid=$(cat $1 | sed -n 's/^%\(global\|define\)[ \t]\+buildid[ \t]\+\(.*\)/\2/p')
+	local dist=$(cat $1 | sed -n 's/^%\(global\|define\)[ \t]\+dist[ \t]\+\(.*\)/\2/p')
+
 	local rpmversion=$(cat $1 | sed -n 's/^%\(global\|define\)[ \t]\+rpmversion[ \t]\+\(.*\)/\2/p')
-	local pkgrelease=$(cat $1 | sed -n 's/^%\(global\|define\)[ \t]\+pkgrelease[ \t]\+\(.*\)/\2/p')
+	local specrelease=$(cat $1 | sed -n 's/^%\(global\|define\)[ \t]\+specrelease[ \t]\+\(.*\)/\2/p')
+
+	specrelease=$(eval "echo $(echo $specrelease | sed 's/{?/{/g;s/%/\$/g' )")
 
 	# output the version
-	echo "$rpmversion-$pkgrelease"
+	echo "$rpmversion-$specrelease"
 }
 
 function specfile_version() {
