@@ -191,13 +191,13 @@ function specfile_version_macros() {
 	local buildid=$(cat $1 | sed -n 's/^%\(global\|define\)[ \t]\+buildid[ \t]\+\(.*\)/\2/p')
 	local dist=$(cat $1 | sed -n 's/^%\(global\|define\)[ \t]\+dist[ \t]\+\(.*\)/\2/p')
 
-	local rpmversion=$(cat $1 | sed -n 's/^%\(global\|define\)[ \t]\+rpmversion[ \t]\+\(.*\)/\2/p')
+	local specversion=$(cat $1 | sed -n 's/^%\(global\|define\)[ \t]\+specversion[ \t]\+\(.*\)/\2/p')
 	local specrelease=$(cat $1 | sed -n 's/^%\(global\|define\)[ \t]\+specrelease[ \t]\+\(.*\)/\2/p')
 
 	specrelease=$(eval "echo $(echo $specrelease | sed 's/{?/{/g;s/%/\$/g' )")
 
 	# output the version
-	echo "$rpmversion-$specrelease"
+	echo "$specversion-$specrelease"
 }
 
 function specfile_version() {
@@ -398,7 +398,6 @@ cp kernel.spec kernel.spec.orig
 
 # FIXME: aarch64 builds complain if the version string is too long
 notice "FIXING RELEASE STRING LENGTH"
-#sed -i -e 's/\(define[ \t]\+pkgrelease[ \t]\+.*git.\{8\}\)\([a-zA-Z0-9]\+\)/\1/' kernel.spec || exit_error
 sed -i -e 's/\(define[ \t]\+specrelease[ \t]\+.*git.\{8\}\)\([a-zA-Z0-9]\+\)/\1/' kernel.spec || exit_error
 
 # determine the revision number if needed
