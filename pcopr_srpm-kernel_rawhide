@@ -477,7 +477,7 @@ git diff kernel.spec
 # rpm prep stage
 notice "TEST KERNEL RPM PREP STAGE"
 # FIXME: temporary skip config checks (August 2022)
-fedpkg prep --define '"_without_configchecks 1"' || exit_error
+fedpkg prep --define '_without_configchecks 1' || exit_error
 
 # if we are just doing a test run then exit here
 [[ $opt_test -eq 1 ]] && exit 0
