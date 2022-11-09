@@ -149,7 +149,7 @@ function _commit_subj() {
 }
 
 function commit_subj() {
-	_commit_subj 50 $1
+	_commit_subj 48 $1
 }
 
 function commit_subj_short() {
