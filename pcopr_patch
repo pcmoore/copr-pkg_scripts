@@ -199,7 +199,7 @@ function branch_merge() {
 			local subj
 			subj="$(commit_subj $commit)"
 			output "skip $subj"
-			echo "-skip $subj" \
+			echo "-skip  $subj" \
 				| tee -a $dir_cwd/$DIR_PATCHES/CHANGELOG \
 				>> $log_skip
 		fi
@@ -315,7 +315,7 @@ function branch_merge_submodule() {
 			local subj
 			subj="$(commit_subj_short $commit)"
 			output "skip $subj"
-			echo "-skip $subj" \
+			echo "-skip  $subj" \
 				| tee -a $dir_cwd/$DIR_PATCHES/CHANGELOG \
 				>> $log_skip
 		fi
