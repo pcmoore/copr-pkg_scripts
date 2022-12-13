@@ -166,7 +166,7 @@ function branch_tracking() {
 function branch_stable() {
 	local remote="$1"
 
-	git branch -la | grep "remotes/$remote/stable-" \
+	git branch -la | grep -e "remotes/$remote/stable-[0-9]*\.[0-9]*$" \
 		| sort -V | tail -n1 | sed -e 's/.*remotes\///'
 }
 
