@@ -422,6 +422,24 @@ if [[ -n $(ls $dir_cwd/$DIR_PATCHES/*.patch 2> /dev/null) ]]; then
 	ls -1 *-COPR-*.patch
 fi
 
+# generate source replacement tarball
+notice "GENERATE SPECFILE SOURCE REPLACEMENT REFERENCES"
+if [[ $(find $dir_cwd/$DIR_REPO_RPM_REPLACE -type f | wc -l) -gt 0 ]]; then
+	# generate a tarball
+	$(cd $dir_cwd/$DIR_REPO_RPM_REPLACE; tar cvf $dir_cwd/$DIR_REPO_RPM/copr-srpm-replace.tar .)
+
+	# definition
+	echo "# START OF COPR SOURCES" > copr-sources.inc
+	echo "Source9999: copr-srpm-replace.tar" >> copr-sources.inc
+	echo "# END OF COPR SOURCES" >> copr-sources.inc
+	echo "" >> copr-sources.inc
+	# application
+	echo "# START OF COPR SOURCES" > copr-sources-apply.inc
+	echo "tar xvf \$RPM_SOURCE_DIR/copr-srpm-replace.tar" >> copr-sources-apply.inc
+	echo "# END OF COPR SOURCES" >> copr-sources-apply.inc
+	echo "" >> copr-sources-apply.inc
+fi
+
 # generate specfile patch snippet (if patches are present)
 notice "GENERATE SPECFILE PATCH REFERENCES"
 if [[ -n $(ls $dir_cwd/$DIR_PATCHES/*.patch 2> /dev/null) ]]; then
@@ -444,6 +462,10 @@ if [[ -n $(ls $dir_cwd/$DIR_PATCHES/*.patch 2> /dev/null) ]]; then
 	echo "" >> copr-patches-apply.inc
 fi
 
+# unify the specfile additions
+cat copr-patches.inc copr-sources.inc > copr-add-definitions.inc
+cat copr-sources-apply.inc copr-patches-apply.inc > copr-add-apply.inc
+
 # generate specfile changelog snippet
 cat /dev/null > copr-changelog.inc
 echo "* $(TZ="UTC" date +"%a %b %d %Y") $USER_NAME <$USER_EMAIL> - $(specfile_version kernel.spec).$opt_revision.$PKG_VARIANT" >> copr-changelog.inc
@@ -454,8 +476,8 @@ echo "" >> copr-changelog.inc
 # patch kernel specfile
 notice "PATCH KERNEL SPECFILE"
 sed -i -e 's/^# define buildid .local/%define buildid .'$opt_revision'.'$PKG_VARIANT'/' kernel.spec || exit_error
-sed -n -i -e '/^# END OF PATCH DEFINITIONS/r copr-patches.inc' -e 1x -e '2,${x;p}' -e '${x;p}' kernel.spec || exit_error
-sed -n -i -e '/^# END OF PATCH APPLICATIONS/r copr-patches-apply.inc' -e 1x -e '2,${x;p}' -e '${x;p}' kernel.spec || exit_error
+sed -n -i -e '/^# END OF PATCH DEFINITIONS/r copr-add-definitions.inc' -e 1x -e '2,${x;p}' -e '${x;p}' kernel.spec || exit_error
+sed -n -i -e '/^# END OF PATCH APPLICATIONS/r copr-add-apply.inc' -e 1x -e '2,${x;p}' -e '${x;p}' kernel.spec || exit_error
 
 # make a note in the changelog
 sed -i -e '/^%changelog/ r copr-changelog.inc' kernel.spec || exit_error
