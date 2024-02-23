@@ -343,6 +343,7 @@ fi
 [[ -z $DIR_PATCHES ]] && exit_error "DIR_PATCHES is not set"
 [[ -z $DIR_SRPMS ]] && exit_error "DIR_SRPMS is not set"
 [[ -z $DIR_REPO_RPM ]] && exit_error "DIR_REPO_RPM is not set"
+[[ -z $DIR_REPO_RPM_REPLACE ]] && exit_error "DIR_REPO_RPM_REPLACE is not set"
 [[ -z $DIR_REPO_RPM_FIXES ]] && exit_error "DIR_REPO_RPM_FIXES is not set"
 [[ -z $PATCH_BRANCH_BASE_RPM ]] && exit_error "PATCH_BRANCH_BASE_RPM is not set"
 [[ -z $PKG_VARIANT ]] && exit_error "PKG_VARIANT is not set"
@@ -426,7 +427,7 @@ fi
 notice "GENERATE SPECFILE SOURCE REPLACEMENT REFERENCES"
 if [[ $(find $dir_cwd/$DIR_REPO_RPM_REPLACE -type f | wc -l) -gt 0 ]]; then
 	# generate a tarball
-	$(cd $dir_cwd/$DIR_REPO_RPM_REPLACE; tar cvf $dir_cwd/$DIR_REPO_RPM/copr-srpm-replace.tar .)
+	(cd $dir_cwd/$DIR_REPO_RPM_REPLACE; tar cf $dir_cwd/$DIR_REPO_RPM/copr-srpm-replace.tar .)
 
 	# definition
 	echo "# START OF COPR SOURCES" > copr-sources.inc
