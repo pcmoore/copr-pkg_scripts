@@ -219,6 +219,7 @@ function branch_tracking() {
 function notify_email() {
 	local subject="$1"
 	local body="$2"
+	local opts=""
 
 	# leave only the attachments in the argument list
 	shift 2
@@ -230,14 +231,10 @@ function notify_email() {
 	output "notify $NOTIFY_EMAIL"
 
 	# send the email notification
-	if [[ $# -gt 0 ]]; then
-		cat $body | \
-			mutt -e "set copy=no" \
-				-s "$(cat $subject)" -a $* -- $NOTIFY_EMAIL
-	else
-		cat $body | \
-			mutt -e "set copy=no" -s "$(cat $subject)" $NOTIFY_EMAIL
-	fi
+	for i in $*; do
+		opts+=" -a $i"
+	done
+	cat "$body" | mailx -s "$(cat $subject)" $opts $NOTIFY_EMAIL
 }
 
 ####
