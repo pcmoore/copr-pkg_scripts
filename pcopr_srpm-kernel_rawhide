@@ -397,9 +397,10 @@ fi
 # NOTE: make a backup in kernel.spec.orig to make life easier
 cp kernel.spec kernel.spec.orig
 
-# FIXME: aarch64 builds complain if the version string is too long
+# FIXME: builds complain if the version string is too long (>64 chars?)
 notice "FIXING RELEASE STRING LENGTH"
-sed -i -e 's/\(define[ \t]\+specrelease[ \t]\+.*git.\{8\}\)\([a-zA-Z0-9]\+\)/\1/' kernel.spec || exit_error
+sed -i -e 's/\(define[ \t]\+pkgrelease[ \t]\+.*g\)\([a-zA-Z0-9]\{8\}\)/\1/' kernel.spec || exit_error
+sed -i -e 's/\(define[ \t]\+specrelease[ \t]\+.*g\)\([a-zA-Z0-9]\{8\}\)/\1/' kernel.spec || exit_error
 
 # determine the revision number if needed
 if [[ $opt_revision == "auto" ]]; then
