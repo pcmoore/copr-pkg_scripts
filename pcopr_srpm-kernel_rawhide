@@ -497,7 +497,7 @@ git diff kernel.spec
 
 # display ~/.rpmmacros if present
 if [[ -r $HOME/.rpmmacros ]]; then
-	notice "USING $HOME/.rpmmacros BELOW"
+	notice "RPM MACRO CONFIGURATION"
 	cat $HOME/.rpmmacros
 fi
 
