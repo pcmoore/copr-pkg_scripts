@@ -423,6 +423,8 @@ fi
 
 # generate source replacement tarball
 notice "GENERATE SPECFILE SOURCE REPLACEMENT REFERENCES"
+cat /dev/null > copr-sources.inc
+cat /dev/null > copr-sources-apply.inc
 if [[ $(find $dir_cwd/$DIR_REPO_RPM_REPLACE -type f | wc -l) -gt 0 ]]; then
 	# generate a tarball
 	(cd $dir_cwd/$DIR_REPO_RPM_REPLACE; tar cf $dir_cwd/$DIR_REPO_RPM/copr-srpm-replace.tar .)
@@ -441,6 +443,8 @@ fi
 
 # generate specfile patch snippet (if patches are present)
 notice "GENERATE SPECFILE PATCH REFERENCES"
+cat /dev/null > copr-patches.inc
+cat /dev/null > copr-patches-apply.inc
 if [[ -n $(ls $dir_cwd/$DIR_PATCHES/*.patch 2> /dev/null) ]]; then
 	# definitions
 	echo "# START OF COPR PATCHES" > copr-patches.inc
