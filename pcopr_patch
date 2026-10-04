@@ -170,6 +170,16 @@ function branch_stable() {
 		| sort -V | tail -n1 | sed -e 's/.*remotes\///'
 }
 
+function branch_topics() {
+	local remote="$1"
+
+	# determine the latest version number based on stable-*
+	local ver=$(branch_stable $remote | cut -d'-' -f2)
+
+	git branch -la | grep -e "remotes/$remote/topic-$ver-" \
+		| sort -V | sed -e 's/.*remotes\///'
+}
+
 # TODO: look at merging branch_merge() and branch_merge_submodule()
 function branch_merge() {
 	local branch="$1"
@@ -554,6 +564,11 @@ for i in $PATCH_BRANCH_LIST; do
 		branch_merge_submodule \
 			$(echo "$i" | cut -d':' -f 2) \
 			$(echo "$i" | cut -d':' -f 3)
+		;;
+	topics:*)
+		for j in $(branch_topics $(echo ${i#topics:})); do
+			branch_merge $j
+		done
 		;;
 	*)
 		branch_merge "$i"
