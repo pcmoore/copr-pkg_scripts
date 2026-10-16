@@ -180,6 +180,15 @@ function branch_topics() {
 		| sort -V | sed -e 's/.*remotes\///'
 }
 
+function git_commits() {
+	local start="$1"
+	local end="$2"
+
+	[[ -z "$start" || -z "$end" ]] && return
+
+	git log --no-merges --format=format:"%H" "$start".."$end"
+}
+
 # TODO: look at merging branch_merge() and branch_merge_submodule()
 function branch_merge() {
 	local branch="$1"
@@ -198,7 +207,7 @@ function branch_merge() {
 
 	# build the list of commits from the branch
 	local commit_list=""
-	for commit in $(git log --format=format:"%H" "$base_ref".."$branch"); do
+	for commit in $(git_commits "$base_ref" "$branch"); do
 		local skip=0
 		for exclude in $opt_excludes; do
 			echo $commit | grep -q $exclude && skip=1
@@ -314,7 +323,7 @@ function branch_merge_submodule() {
 
 	# build the list of commits from the branch
 	local commit_list=""
-	for commit in $(git log --format=format:"%H" "$base_ref".."$branch"); do
+	for commit in $(git_commits "$base_ref" "$branch"); do
 		local skip=0
 		for exclude in $opt_excludes; do
 			echo $commit | grep -q $exclude && skip=1
