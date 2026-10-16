@@ -128,9 +128,21 @@ function net() {
 }
 
 function patch_cmd() {
-	[[ -z "$1" ]] && return
-	patch -N -p0 -f < "$1" || patch -N -p1 -f < "$1"
-	return $?
+	local rc
+	local patch_file="$1"
+
+	[[ -z "$patch_file" ]] && return
+
+	for i in {0..1}; do
+		patch --dry-run -N -p$i -f < "$patch_file" >& /dev/null
+		rc=$?
+		if [[ $rc == 0 ]]; then
+			patch -N -p$i -f < "$patch_file"
+			return $?
+		fi
+	done
+
+	return $rc
 }
 
 function _commit_subj() {
