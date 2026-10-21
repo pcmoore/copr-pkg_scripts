@@ -186,7 +186,10 @@ function branch_topics() {
 	local remote="$1"
 
 	# determine the latest version number based on stable-*
-	local ver=$(branch_stable $remote | cut -d'-' -f2)
+	local ver_current=$(branch_stable $remote | cut -d'-' -f2)
+	local ver_maj=$(echo $ver_current | cut -d'.' -f 1)
+	local ver_min=$(echo $ver_current | cut -d'.' -f 2)
+	local ver=$(echo ${ver_maj}.$(( $ver_min + 1 )))
 
 	git branch -la | grep -e "remotes/$remote/topic-$ver-" \
 		| sort -V | sed -e 's/.*remotes\///'
